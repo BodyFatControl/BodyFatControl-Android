@@ -5,11 +5,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -32,18 +34,6 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import combodyfatcontrol.httpsgithub.bodyfatcontrol.adapter.IQDeviceAdapter;
-import com.garmin.android.connectiq.ConnectIQ;
-import com.garmin.android.connectiq.ConnectIQ.IQDeviceEventListener;
-import com.garmin.android.connectiq.IQApp;
-import com.garmin.android.connectiq.IQDevice;
-import com.garmin.android.connectiq.IQDevice.IQDeviceStatus;
-import com.garmin.android.connectiq.exception.InvalidStateException;
-import com.garmin.android.connectiq.exception.ServiceUnavailableException;
-import com.garmin.android.connectiq.ConnectIQ.IQApplicationEventListener;
-import com.garmin.android.connectiq.ConnectIQ.IQSendMessageListener;
-import com.garmin.android.connectiq.ConnectIQ.IQMessageStatus;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
@@ -73,16 +63,14 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
-        OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener {
+import android.Manifest;
 
-    private Tracker mTracker;
-    private ConnectIQ mConnectIQ;
-    private IQDevice mIQDevice;
-    private IQDeviceAdapter iqDeviceAdapter;
-    private boolean mSdkReady = false;
-    public static final String MY_APP = "3F3D83A85F584671A551EA1316623AD7";
-    private IQApp mConnectIQApp = new IQApp(MY_APP);
+public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
+        OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener,
+        ActivityCompat.OnRequestPermissionsResultCallback {
+
+    private Tracker mTracker; // for google analytics
+
     public static final int ALIVE_COMMAND = 154030201;
     public static final int HISTORIC_CALS_COMMAND = 104030201;
     private static final int USER_DATA_COMMAND = 204030201;
@@ -117,209 +105,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         return Prefs;
     }
 
-    private ConnectIQ.IQDeviceEventListener mDeviceEventListener = new ConnectIQ.IQDeviceEventListener() {
-        @Override
-        public void onDeviceStatusChanged(IQDevice device, IQDevice.IQDeviceStatus status) {
-            if (status == IQDeviceStatus.CONNECTED) {
-                mImageViewConnect.setVisibility(View.VISIBLE);
-            } else if (status == IQDeviceStatus.NOT_CONNECTED) {
-                mImageViewConnect.setVisibility(View.INVISIBLE);
-            } else if (status == IQDeviceStatus.NOT_PAIRED) {
-                mImageViewConnect.setVisibility(View.INVISIBLE);
-            } else if (status == IQDeviceStatus.UNKNOWN) {
-                mImageViewConnect.setVisibility(View.INVISIBLE);
-            }
-
-            device.setStatus(status);
-        }
-    };
-
-    ConnectIQ.ConnectIQListener mListenerSDKInitialize = new ConnectIQ.ConnectIQListener() {
-        @Override
-        public void onInitializeError(ConnectIQ.IQSdkErrorStatus errStatus) {
-//            if( null != mTextView )
-//                mTextView.setText(R.strbody_fat_controling.initialization_error + errStatus.name());
-            mSdkReady = false;
-        }
-
-        @Override
-        public void onSdkReady() {
-            mSdkReady = true;
-
-            // verifiy if Garmin device is saved on SharedPreferences
-            SharedPreferences mPrefs = getPrefs();
-            Gson gson = new Gson();
-            String json = mPrefs.getString("garmin_device", "");
-            mIQDevice = gson.fromJson(json, IQDevice.class);
-
-            if (mIQDevice != null) {
-                // Get our instance of ConnectIQ.  Since we initialized it
-                // in our MainActivity, there is no need to do so here, we
-                // can just get a reference to the one and only instance.
-                mConnectIQ = ConnectIQ.getInstance();
-                try {
-                    mConnectIQ.registerForDeviceEvents(mIQDevice, new IQDeviceEventListener() {
-
-                        @Override
-                        public void onDeviceStatusChanged(IQDevice device, IQDeviceStatus status) {
-                            if (status == IQDeviceStatus.CONNECTED) {
-                                mImageViewConnect.setVisibility(View.VISIBLE);
-                            } else if (status == IQDeviceStatus.NOT_CONNECTED) {
-                                mImageViewConnect.setVisibility(View.INVISIBLE);
-                            } else if (status == IQDeviceStatus.NOT_PAIRED) {
-                                mImageViewConnect.setVisibility(View.INVISIBLE);
-                            } else if (status == IQDeviceStatus.UNKNOWN) {
-                                mImageViewConnect.setVisibility(View.INVISIBLE);
-                            }
-                        }
-                    });
-                } catch (InvalidStateException e) {
-//                Log.wtf(TAG, "InvalidStateException:  We should not be here!");
-                }
-
-                try {
-                    mConnectIQ.registerForDeviceEvents(mIQDevice, mDeviceEventListener);
-                } catch (InvalidStateException e) {
-                    // This generally means you forgot to call initialize(), but since
-                    // we are in the callback for initialize(), this should never happen
-                }
-
-                // Let's check the status of our application on the device.
-                try {
-                    mConnectIQ.getApplicationInfo(MY_APP, mIQDevice, new ConnectIQ.IQApplicationInfoListener() {
-
-                        @Override
-                        public void onApplicationInfoReceived(IQApp app) {
-
-                            //mConnectIQApp = app;
-
-                            // This is a good thing. Now we can show our list of message options.
-//                        String[] options = getResources().getStringArray(R.array.send_message_display);
-//                        String[] options = null;
-//
-//                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(DeviceActivity.this, android.R.layout.simple_list_item_1, options);
-//                        setListAdapter(adapter);
-
-                        }
-
-                        @Override
-                        public void onApplicationNotInstalled(String applicationId) {
-                            // The Comm widget is not installed on the device so we have
-                            // to let the user know to install it.
-                            AlertDialog.Builder dialog = new AlertDialog.Builder(MainActivity.this);
-                            dialog.setTitle(R.string.missing_widget);
-                            dialog.setMessage(R.string.missing_widget_message);
-                            dialog.setPositiveButton(android.R.string.ok, null);
-                            dialog.create().show();
-                        }
-
-                    });
-                } catch (InvalidStateException e1) {
-                } catch (ServiceUnavailableException e1) {
-                }
-
-                // Let's register to receive messages from our application on the device.
-                try {
-                    mConnectIQ.registerForAppEvents(mIQDevice, mConnectIQApp, new IQApplicationEventListener() {
-
-                        @Override
-                        public void onMessageReceived(IQDevice device, IQApp app, List<Object> message, ConnectIQ.IQMessageStatus status) {
-
-                            // We know from our Comm sample widget that it will only ever send us strings, but in case
-                            // we get something else, we are simply going to do a toString() on each object in the
-                            // message list.
-                            StringBuilder builder = new StringBuilder();
-
-                            ArrayList<Integer> theMessage = new ArrayList<Integer>();
-                            ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
-
-                            theMessage = (ArrayList<Integer>) message.get(0);
-                            if(theMessage.get(0) == ALIVE_COMMAND) {
-                                // The app is ready to receive commands, send command to ask for
-                                // historic HR
-                                ArrayList<Integer> command = new ArrayList<>();
-                                // If UserProfile is not updated on the database, send the command to get that information
-                                if (mUserProfile.getDate() < mMidNightToday)
-                                {
-                                    command.add(USER_DATA_COMMAND);
-                                    sendMessage(command);
-                                }
-
-                                command.add(HISTORIC_CALS_COMMAND);
-                                long date = new DataBaseCalories(mContext).DataBaseGetLastMeasurementDate();
-                                command.add((int) date / 60);
-                                sendMessage(command);
-
-                            } else if(theMessage.get(0) == HISTORIC_CALS_COMMAND) {
-                                // Get the user data to store on each measurement
-                                Iterator<Integer> iteratorTheMessage = theMessage.iterator();
-                                iteratorTheMessage.next(); // command ID
-                                int date = (iteratorTheMessage.next() * 60);
-                                int EERCalsPerMinute = iteratorTheMessage.next();
-                                while (iteratorTheMessage.hasNext()) {
-                                    Measurement measurement = new Measurement();
-                                    measurement.setDate((int) date);
-                                    date -= 60;
-                                    measurement.setCalories(iteratorTheMessage.next());
-                                    measurement.setCaloriesEERPerMinute(EERCalsPerMinute);
-                                    measurementList.add(measurement);
-                                }
-
-                                // reverse the list order, to get the values in date ascending order
-                                Collections.reverse(measurementList);
-
-                                // finally write the measurement list to database
-                                new DataBaseCalories(mContext).DataBaseWriteMeasurement(measurementList);
-
-                                // Set current date as LastUpdateDate
-                                Calendar rightNow = Calendar.getInstance();
-                                long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
-                                long rightNowMillis = rightNow.getTimeInMillis() + offset;
-                                long now = rightNowMillis / 1000; // now in seconds
-
-                                    long s = now % 60;
-                                    long m = (now / 60) % 60;
-                                    long h = (now / (60 * 60)) % 24;
-                                    String string = String.format("%dh%02dm%02ds", h, m, s);
-                                    textViewLastUpdateDate.setText(string);
-
-                                mLastUpdateDate = rightNowMillis;
-
-                                drawGraphs();
-
-                            } else if (theMessage.get(0) == USER_DATA_COMMAND) {
-                                // Store the UserProfile on database
-                                Iterator<Integer> iteratorTheMessage = theMessage.iterator();
-                                iteratorTheMessage.next(); // command ID
-                                mUserProfile.setDate(mMidNightToday);
-                                mUserProfile.setUserBirthYear(iteratorTheMessage.next());
-                                mUserProfile.setUserGender(iteratorTheMessage.next());
-                                mUserProfile.setUserHeight(iteratorTheMessage.next());
-                                mUserProfile.setUserWeight(iteratorTheMessage.next());
-                                mUserProfile.setUserActivityClass(iteratorTheMessage.next());
-                                mDataBaseUserProfile.DataBaseUserProfileWrite(mUserProfile);
-
-                                drawGraphs();
-                            }
-                        }
-                    });
-
-                } catch (InvalidStateException e) {
-                    Toast.makeText(mContext, "ConnectIQ is not in a valid state", Toast.LENGTH_LONG).show();
-                }
-            } else {
-                // Since there is no IQDevice saved on SharedPreferences, start the activity for user
-                // select the IQDevice
-                Intent intent = new Intent(mContext, ConnectActivity.class);
-                startActivity(intent);
-            }
-        }
-
-        @Override
-        public void onSdkShutDown() {
-            mSdkReady = false;
-        }
-    };
+    private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -335,18 +121,18 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mDrawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.setStatusBarColor(getResources().getColor(R.color.colorPrimaryDark));
-        }
+
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(getResources().getColor(R.color.colorPrimaryDark));
 
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
         mContext = getApplication().getApplicationContext();
 
+        // For google analytics
         // [START shared_tracker]
         // Obtain the shared Tracker instance.
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
@@ -358,17 +144,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 .setAction("onCreate")
                 .build());
 
-        // Get the UserProfile from the database
-        mDataBaseUserProfile = new DataBaseUserProfile(mContext);
-        mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
-        if (mUserProfile == null) { // in the case there is no data on the database
-            mUserProfile = new UserProfile();
-            mUserProfile.setDate(0);
-            mUserProfile.setUserBirthYear(0);
-            mUserProfile.setUserGender(0);
-            mUserProfile.setUserHeight(0);
-            mUserProfile.setUserWeight(0);
-            mUserProfile.setUserActivityClass(0);
+        // Verify and ask if needed permissions to write database on external memory
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    PERMISSION_WRITE_EXTERNAL_STORAGE);
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -385,12 +168,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             }
         });
 
-        Prefs = getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE);
-        mConnectIQ = ConnectIQ.getInstance(this, ConnectIQ.IQConnectType.WIRELESS);
-
-        // Initialize the SDK
-        mConnectIQ.initialize(this, true, mListenerSDKInitialize);
-
         mDateTitle = (TextView) findViewById(R.id.date_title);
         mTextViewCaloriesCalc = (TextView) findViewById(R.id.calories_calc);
         listViewLogFoodList = (ListView) findViewById(R.id.log_food_list);
@@ -399,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mImageViewConnect = (ImageView) findViewById(R.id.connect);
         mImageViewConnect.setVisibility(View.INVISIBLE);
 
-        // Edit or delete a food from the list
+        // Button for edit or delete a food from the list
         listViewLogFoodList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int pos, long id) {
@@ -448,8 +225,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         } else if (id == R.id.ic_menu_connect){
             // Handle the connect action
-            Intent intent = new Intent(this, ConnectActivity.class);
-            startActivity(intent);
+//            Intent intent = new Intent(this, ConnectActivity.class);
+//            startActivity(intent);
 
             mTracker.send(new HitBuilders.EventBuilder()
                     .setCategory("Action")
@@ -487,25 +264,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mMidNightToday = midNightToday;
         mGraphInitialDate = midNightToday;
         mGraphFinalDate = now;
-
-        drawGraphs();
-        drawListConsumedFoods();
-    }
-
-    void sendMessage(ArrayList<Integer> command) {
-        try {
-            mConnectIQ.sendMessage(mIQDevice, mConnectIQApp, command, new IQSendMessageListener() {
-
-                @Override
-                public void onMessageStatus(IQDevice device, IQApp app, IQMessageStatus status) {
-                }
-
-            });
-        } catch (InvalidStateException e) {
-            Toast.makeText(this, "ConnectIQ is not in a valid state", Toast.LENGTH_SHORT).show();
-        } catch (ServiceUnavailableException e) {
-            Toast.makeText(this, "ConnectIQ service is unavailable. Is Garmin Connect Mobile installed and running?", Toast.LENGTH_LONG).show();
-        }
     }
 
     void drawGraphs() {
@@ -693,7 +451,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 ArrayList<Integer> command = new ArrayList<>();
                 command.add(CALORIES_CONSUMED_COMMAND);
                 command.add((int) mCaloriesConsumed);
-                sendMessage(command);
+//                sendMessage(command);
             }
         }
     }
@@ -848,6 +606,43 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 break;
         }
         return super.onTouchEvent(event);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_WRITE_EXTERNAL_STORAGE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                    startAppThatDependsPermissions ();
+                } else {
+                    // permission denied
+                    finish();
+                }
+                return;
+            }
+        }
+    }
+
+    private void startAppThatDependsPermissions () {
+        // Get the UserProfile from the database
+        mDataBaseUserProfile = new DataBaseUserProfile(mContext);
+        mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
+        if (mUserProfile == null) { // in the case there is no data on the database
+            mUserProfile = new UserProfile();
+            mUserProfile.setDate(0);
+            mUserProfile.setUserBirthYear(0);
+            mUserProfile.setUserGender(0);
+            mUserProfile.setUserHeight(0);
+            mUserProfile.setUserWeight(0);
+            mUserProfile.setUserActivityClass(0);
+        }
+
+        drawGraphs();
+        drawListConsumedFoods();
     }
 }
 
