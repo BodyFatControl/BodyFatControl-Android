@@ -21,6 +21,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -51,6 +52,12 @@ import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.Wearable;
 import com.google.gson.Gson;
 
 import java.text.DecimalFormat;
@@ -67,7 +74,8 @@ import android.Manifest;
 
 public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
         OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener,
-        ActivityCompat.OnRequestPermissionsResultCallback {
+        ActivityCompat.OnRequestPermissionsResultCallback, GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener {
 
     private Tracker mTracker; // for google analytics
 
@@ -106,6 +114,10 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     }
 
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
+
+    GoogleApiClient mGoogleApiClient;
+
+    boolean mConnectionThreadShouldRun = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -264,7 +276,55 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mMidNightToday = midNightToday;
         mGraphInitialDate = midNightToday;
         mGraphFinalDate = now;
+
+        // start connection with mobile app
+        mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        mGoogleApiClient.connect();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (mConnectionThreadShouldRun == true) {
+                        if (mGoogleApiClient.isConnected()) {
+                            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+                            for (Node node : nodes.getNodes()) {
+                                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(), "/notification", "Hello World".getBytes()).await();
+                                if (!result.getStatus().isSuccess()) {
+                                    Log.e("sendMessage", "error");
+                                } else {
+                                    Log.i("sendMessage", "success!! sent to: " + node.getDisplayName());
+                                }
+                            }
+                        }
+
+                        Thread.sleep(2000);
+                    }
+                } catch (Exception e) {
+                    e.getLocalizedMessage();
+                }
+            }
+        }).start();
+        mConnectionThreadShouldRun = true;
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        mConnectionThreadShouldRun = false;
+        mGoogleApiClient.disconnect();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
 
     void drawGraphs() {
         GraphData graphDataObj = new GraphData(mContext, mGraphInitialDate, mGraphFinalDate);
@@ -643,6 +703,20 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         drawGraphs();
         drawListConsumedFoods();
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        Log.d("MainActivity", "onConnected");
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e("MainActivity", "Failed to connect to Google API Client");
     }
 }
 
