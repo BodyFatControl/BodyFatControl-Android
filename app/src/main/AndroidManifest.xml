@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="combodyfatcontrol.httpsgithub.bodyfatcontrol">
+    package="bodyfatcontrol.github">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -10,11 +10,11 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.AnalyticsApplication"
+        android:name="bodyfatcontrol.github.AnalyticsApplication"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.MainActivity"
+            android:name="bodyfatcontrol.github.MainActivity"
             android:label="@string/app_name"
             android:screenOrientation="sensorPortrait"
             android:theme="@style/AppTheme.NoActionBar">
@@ -24,13 +24,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.CreateFoodActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.LogFoodMainActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.LogFoodActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.EditFoodActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.EditLoggedFoodActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.LogCaloriesFoodActivity" />
-        <activity android:name="combodyfatcontrol.httpsgithub.bodyfatcontrol.AboutActivity" />
+        <activity android:name="bodyfatcontrol.github.CreateFoodActivity" />
+        <activity android:name="bodyfatcontrol.github.LogFoodMainActivity" />
+        <activity android:name="bodyfatcontrol.github.LogFoodActivity" />
+        <activity android:name="bodyfatcontrol.github.EditFoodActivity" />
+        <activity android:name="bodyfatcontrol.github.EditLoggedFoodActivity" />
+        <activity android:name="bodyfatcontrol.github.LogCaloriesFoodActivity" />
+        <activity android:name="bodyfatcontrol.github.AboutActivity" />
     </application>
 
 </manifest>

@@ -12,7 +12,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion '26.0.2'
     defaultConfig {
-        applicationId 'combodyfatcontrol.httpsgithub.bodyfatcontrol'
+        applicationId 'bodyfatcontrol.github'
         minSdkVersion 21
         targetSdkVersion 25
         versionCode 6

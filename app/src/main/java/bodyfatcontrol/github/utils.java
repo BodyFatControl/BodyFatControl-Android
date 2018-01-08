@@ -1,4 +1,4 @@
-package combodyfatcontrol.httpsgithub.bodyfatcontrol;
+package bodyfatcontrol.github;
 
 import java.util.Calendar;
 

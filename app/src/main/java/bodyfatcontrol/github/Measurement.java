@@ -1,4 +1,4 @@
-package combodyfatcontrol.httpsgithub.bodyfatcontrol;
+package bodyfatcontrol.github;
 
 public class Measurement {
     private int date; // UTC Unix BUT in minutes

@@ -1,4 +1,4 @@
-package combodyfatcontrol.httpsgithub.bodyfatcontrol;
+package bodyfatcontrol.github;
 
 public class UserProfile {
     private int id;

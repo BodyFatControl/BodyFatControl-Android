@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package combodyfatcontrol.httpsgithub.bodyfatcontrol;
+package bodyfatcontrol.github;
 
 import android.app.Application;
 

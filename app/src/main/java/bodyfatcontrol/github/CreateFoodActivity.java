@@ -1,4 +1,4 @@
-package combodyfatcontrol.httpsgithub.bodyfatcontrol;
+package bodyfatcontrol.github;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
