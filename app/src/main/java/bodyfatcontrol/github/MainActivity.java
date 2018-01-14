@@ -272,39 +272,13 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mGraphInitialDate = midNightToday;
         mGraphFinalDate = now;
 
-        // start connection with mobile app
+        // start connection with wear
         mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
         mGoogleApiClient.connect();
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (mConnectionThreadShouldRun == true) {
-                        if (mGoogleApiClient.isConnected()) {
-                            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
-                            for (Node node : nodes.getNodes()) {
-                                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(), "/notification", "Hello World".getBytes()).await();
-                                if (!result.getStatus().isSuccess()) {
-                                    Log.e("sendMessage", "error");
-                                } else {
-                                    Log.i("sendMessage", "success!! sent to: " + node.getDisplayName());
-                                }
-                            }
-                        }
-
-                        Thread.sleep(2000);
-                    }
-                } catch (Exception e) {
-                    e.getLocalizedMessage();
-                }
-            }
-        }).start();
-        mConnectionThreadShouldRun = true;
     }
 
     @Override
