@@ -1,9 +1,11 @@
 package bodyfatcontrol.github;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -12,6 +14,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -52,9 +55,6 @@ import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.wearable.MessageApi;
-import com.google.android.gms.wearable.Node;
-import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.text.DecimalFormat;
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     static boolean mIsToday = true;
     private DataBaseUserProfile mDataBaseUserProfile = null;
     private UserProfile mUserProfile = null;
-    private Context mContext;
+    public static Context context;
 
     public static SharedPreferences getPrefs() {
         return Prefs;
@@ -112,11 +112,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     GoogleApiClient mGoogleApiClient;
 
-    boolean mConnectionThreadShouldRun = false;
+    private BroadcastReceiver mBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        context = getApplicationContext();
+
         setTitle("Body Fat Control");
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -137,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        mContext = getApplication().getApplicationContext();
+        context = getApplication().getApplicationContext();
 
         // For google analytics
         // [START shared_tracker]
@@ -170,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                         .setAction("LogFoodMainActivity")
                         .build());
 
-                Intent intent = new Intent(mContext, LogFoodMainActivity.class);
+                Intent intent = new Intent(context, LogFoodMainActivity.class);
                 startActivity(intent);
             }
         });
@@ -221,6 +224,18 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 return true;
             }
         });
+
+        // receive the value of HR sensor
+        mBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String HRValue = intent.getStringExtra("HR_VALUE");
+
+                mDateTitle.setText(HRValue);
+            }
+        };
+        LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
+                new IntentFilter("HR_VALUE"));
     }
 
     //@SuppressWarnings("StatementWithEmptyBody")
@@ -284,8 +299,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     @Override
     public void onPause() {
         super.onPause();
-
-        mConnectionThreadShouldRun = false;
         mGoogleApiClient.disconnect();
     }
 
@@ -296,16 +309,16 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
 
     void drawGraphs() {
-        GraphData graphDataObj = new GraphData(mContext, mGraphInitialDate, mGraphFinalDate);
+        GraphData graphDataObj = new GraphData(context, mGraphInitialDate, mGraphFinalDate);
         List<Entry> graphDataCalories = graphDataObj.prepareCalories();
         mCurrentCaloriesEER = graphDataObj.getCurrentCaloriesEER();
         List<Entry> graphDataCaloriesConsumed = graphDataObj.prepareCaloriesConsumed();
 
         if (graphDataCalories != null && graphDataCaloriesConsumed != null) {
-            final int caloriesSpentColor = ContextCompat.getColor(mContext, R.color.graphCaloriesSpent);
-            final int caloriesSpentLineColor = ContextCompat.getColor(mContext, R.color.graphCaloriesSpentLine);
-            final int caloriesConsumedColor = ContextCompat.getColor(mContext, R.color.graphCaloriesConsumed);
-            final int caloriesConsumedLineColor = ContextCompat.getColor(mContext, R.color.graphCaloriesConsumedLine);
+            final int caloriesSpentColor = ContextCompat.getColor(context, R.color.graphCaloriesSpent);
+            final int caloriesSpentLineColor = ContextCompat.getColor(context, R.color.graphCaloriesSpentLine);
+            final int caloriesConsumedColor = ContextCompat.getColor(context, R.color.graphCaloriesConsumed);
+            final int caloriesConsumedLineColor = ContextCompat.getColor(context, R.color.graphCaloriesConsumedLine);
 
             mCaloriesActive = graphDataObj.getCaloriesActive();
             mCaloriesConsumed = graphDataObj.getCaloriesConsumed();
@@ -329,7 +342,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             if (caloriesResult < 0) {
                 spannableString = new SpannableString(String.valueOf(caloriesResult));
                 spannableString.setSpan(new ForegroundColorSpan(
-                        ContextCompat.getColor(mContext, R.color.caloriesResultValue)), 0, spannableString.length(), 0);
+                        ContextCompat.getColor(context, R.color.caloriesResultValue)), 0, spannableString.length(), 0);
                 builder.append(" = ");
                 builder.append(spannableString);
             } else {
@@ -658,7 +671,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     private void startAppThatDependsPermissions () {
         // Get the UserProfile from the database
-        mDataBaseUserProfile = new DataBaseUserProfile(mContext);
+        mDataBaseUserProfile = new DataBaseUserProfile(context);
         mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
         if (mUserProfile == null) { // in the case there is no data on the database
             mUserProfile = new UserProfile();
