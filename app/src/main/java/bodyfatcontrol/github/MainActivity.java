@@ -1,12 +1,13 @@
 package bodyfatcontrol.github;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -85,8 +86,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private TextView mDateTitle;
     private TextView textViewLastUpdateDate;
     private ImageView mImageViewConnect;
-    public static String PREFERENCES = "MainSharedPreferences";
-    public static SharedPreferences Prefs;
     public static long mMidNightToday;
     private long mGraphInitialDate;
     private long mGraphFinalDate;
@@ -104,15 +103,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private UserProfile mUserProfile = null;
     public static Context context;
 
-    public static SharedPreferences getPrefs() {
-        return Prefs;
-    }
-
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
 
     GoogleApiClient mGoogleApiClient;
 
     private BroadcastReceiver mBroadcastReceiver;
+
+    private AlarmManager alarmMgr;
+    private PendingIntent alarmIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -236,6 +234,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
                 new IntentFilter("HR_VALUE"));
+
+        setupTimer1Minute ();
     }
 
     //@SuppressWarnings("StatementWithEmptyBody")
@@ -699,6 +699,33 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.e("MainActivity", "Failed to connect to Google API Client");
+    }
+
+    private void setupTimer1Minute () {
+        // register the action for when receiving the message TIMER_FIRED
+        mBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                // schedule timer again
+                long millisNextMinute = System.currentTimeMillis();
+                millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
+                alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
+
+                // TODO
+                Log.i("timer", "...");
+            }
+        };
+        LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
+                new IntentFilter("TIMER_FIRED"));
+
+        // prepare timer
+        alarmMgr = (AlarmManager)context.getSystemService(context.ALARM_SERVICE);
+        Intent intent = new Intent(context, TimerReceiver.class);
+        intent.setAction("bodyfatcontrol.github-timer");
+        alarmIntent = PendingIntent.getBroadcast(context, 0, intent, 0);
+        long millisNextMinute = System.currentTimeMillis();
+        millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
+        alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
     }
 }
 
