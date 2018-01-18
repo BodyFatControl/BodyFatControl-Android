@@ -54,24 +54,24 @@ import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import android.Manifest;
 
 public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
         OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener,
-        ActivityCompat.OnRequestPermissionsResultCallback, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+        ActivityCompat.OnRequestPermissionsResultCallback {
 
     private Tracker mTracker; // for google analytics
 
@@ -105,12 +105,12 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
 
-    GoogleApiClient mGoogleApiClient;
-
     private BroadcastReceiver mBroadcastReceiver;
 
     private AlarmManager alarmMgr;
     private PendingIntent alarmIntent;
+
+    public static final String MESSAGE_PATH = "/notification";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -238,6 +238,38 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         setupTimer1Minute ();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        mTracker.send(new HitBuilders.EventBuilder()
+                .setCategory("Action")
+                .setAction("onResume")
+                .build());
+
+        // Calc and set graph initial and final dates (midnight today and rightnow)
+        Calendar rightNow = Calendar.getInstance();
+        long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
+        long rightNowMillis = rightNow.getTimeInMillis() + offset;
+        long sinceMidnightToday = rightNowMillis % (24 * 60 * 60 * 1000);
+        long midNightToday = rightNowMillis - sinceMidnightToday;
+        long now = rightNowMillis / 1000; // now in seconds
+        midNightToday /= 1000; // now in seconds
+        mMidNightToday = midNightToday;
+        mGraphInitialDate = midNightToday;
+        mGraphFinalDate = now;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
     //@SuppressWarnings("StatementWithEmptyBody")
     //@Override
     public boolean onNavigationItemSelected(MenuItem item) {
@@ -265,48 +297,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        mTracker.send(new HitBuilders.EventBuilder()
-                .setCategory("Action")
-                .setAction("onResume")
-                .build());
-
-        // Calc and set graph initial and final dates (midnight today and rightnow)
-        Calendar rightNow = Calendar.getInstance();
-        long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
-        long rightNowMillis = rightNow.getTimeInMillis() + offset;
-        long sinceMidnightToday = rightNowMillis % (24 * 60 * 60 * 1000);
-        long midNightToday = rightNowMillis - sinceMidnightToday;
-        long now = rightNowMillis / 1000; // now in seconds
-        midNightToday /= 1000; // now in seconds
-        mMidNightToday = midNightToday;
-        mGraphInitialDate = midNightToday;
-        mGraphFinalDate = now;
-
-        // start connection with wear
-        mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        mGoogleApiClient.disconnect();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-    }
-
 
     void drawGraphs() {
         GraphData graphDataObj = new GraphData(context, mGraphInitialDate, mGraphFinalDate);
@@ -687,20 +677,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         drawListConsumedFoods();
     }
 
-    @Override
-    public void onConnected(Bundle bundle) {
-        Log.d("MainActivity", "onConnected");
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.e("MainActivity", "Failed to connect to Google API Client");
-    }
-
     private void setupTimer1Minute () {
         // register the action for when receiving the message TIMER_FIRED
         mBroadcastReceiver = new BroadcastReceiver() {
@@ -711,8 +687,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
 
-                // TODO
-                Log.i("timer", "...");
+                new SendMessageThread("test").start();
             }
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
@@ -726,6 +701,39 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         long millisNextMinute = System.currentTimeMillis();
         millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
         alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
+    }
+
+    // code from: https://github.com/JimSeker/wearable/blob/master/WearableDataLayer/wear/src/main/java/edu/cs4730/wearabledatalayer/MainActivity.java
+    class SendMessageThread extends Thread {
+        String message;
+
+        //constructor
+        SendMessageThread(String msg) {
+            message = msg;
+        }
+
+        //sends the message via the thread.  this will send to all wearables connected, but
+        //since there is (should only?) be one, no problem.
+        public void run() {
+            //first get all the nodes, ie connected wearable devices.
+            Task<List<Node>> nodeListTask =
+                    Wearable.getNodeClient(getApplicationContext()).getConnectedNodes();
+            try {
+                // Block on a task and get the result synchronously (because this is on a background
+                // thread).
+                List<Node> nodes = Tasks.await(nodeListTask);
+
+                //Now send the message to each device.
+                for (Node node : nodes) {
+                    Task<Integer> sendMessageTask =
+                            Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), MESSAGE_PATH, message.getBytes());
+                }
+            } catch (ExecutionException exception) {
+                Log.e("SendMessageThread", "Node Task failed: " + exception);
+            } catch (InterruptedException exception) {
+                Log.e("SendMessageThread", "Node Interrupt occurred: " + exception);
+            }
+        }
     }
 }
 
