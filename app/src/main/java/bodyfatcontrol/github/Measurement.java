@@ -1,31 +1,40 @@
 package bodyfatcontrol.github;
 
 public class Measurement {
-    private int date; // UTC Unix BUT in minutes
-    private int calories;
-    private int caloriesEERPerMinute;
+    private long date; // UTC Unix BUT in minutes
+    private int HR;
+    private double calories;
+    private double caloriesEERPerMinute;
 
-    public int getDate() {
+    public long getDate() {
         return date;
     }
 
-    public void setDate(int date) {
+    public void setDate(long date) {
         this.date = date;
     }
 
-    public int getCalories() {
+    public double getCalories() {
         return calories;
     }
 
-    public void setCalories(int calories) {
+    public void setCalories(double calories) {
         this.calories = calories;
     }
 
-    public int getCaloriesEERPerMinute() {
+    public double getCaloriesEERPerMinute() {
         return caloriesEERPerMinute;
     }
 
-    public int setCaloriesEERPerMinute(int caloriesEERPerMinute) {
-        return this.caloriesEERPerMinute = caloriesEERPerMinute;
+    public void setCaloriesEERPerMinute(double caloriesEERPerMinute) {
+        this.caloriesEERPerMinute = caloriesEERPerMinute;
+    }
+
+    public int getHR() {
+        return HR;
+    }
+
+    public void setHR(int HR) {
+        this.HR = HR;
     }
 }

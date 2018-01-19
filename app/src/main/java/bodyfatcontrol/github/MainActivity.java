@@ -58,7 +58,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
+import com.google.common.primitives.Longs;
 
+import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -69,13 +71,17 @@ import java.util.concurrent.ExecutionException;
 
 import android.Manifest;
 
+import org.apache.commons.lang3.ArrayUtils;
+
+import static org.apache.commons.lang3.ArrayUtils.subarray;
+import static bodyfatcontrol.github.Utils.*;
+
 public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
         OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener,
         ActivityCompat.OnRequestPermissionsResultCallback {
 
     private Tracker mTracker; // for google analytics
 
-    public static final int ALIVE_COMMAND = 154030201;
     public static final int HISTORIC_CALS_COMMAND = 104030201;
     private static final int USER_DATA_COMMAND = 204030201;
     private static final int CALORIES_CONSUMED_COMMAND = 304030201;
@@ -223,17 +229,43 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             }
         });
 
-        // receive the value of HR sensor
+        // receive the message that was sent from wear app
         mBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String HRValue = intent.getStringExtra("HR_VALUE");
+                byte[] message = intent.getByteArrayExtra("MESSAGE");
+                long command = ByteArrayToLong(ArrayUtils.subarray(message, 0, 8));
+                if (command == MainActivity.HISTORIC_CALS_COMMAND) {
+                    ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
 
-                mDateTitle.setText(HRValue);
+                    int measurementByteSize = Long.SIZE + Integer.SIZE + Double.SIZE + Double.SIZE;
+                    int messageNumberOfMeasurements = (message.length - 8) / measurementByteSize;
+
+                    int i = 8;
+                    for ( ; messageNumberOfMeasurements > 0; messageNumberOfMeasurements--) {
+                        Measurement measurement = new Measurement();
+
+                        long date = ByteArrayToLong(ArrayUtils.subarray(message, i, i += 8));
+                        measurement.setDate(date);
+
+                        int HR = ByteArrayToInt(ArrayUtils.subarray(message, i, i += 4));
+                        measurement.setHR(HR);
+
+                        double calories = ByteArrayToDouble(ArrayUtils.subarray(message, i, i += 8));
+                        measurement.setCalories(calories);
+
+                        double caloriesEER = ByteArrayToDouble(ArrayUtils.subarray(message, i, i += 8));
+                        measurement.setCaloriesEERPerMinute(caloriesEER);
+
+                        measurementList.add(measurement);
+                    }
+
+                    new DataBaseCalories(context).DataBaseWriteMeasurement(measurementList);
+                }
             }
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
-                new IntentFilter("HR_VALUE"));
+                new IntentFilter("RECEIVED_COMMAND"));
 
         setupTimer1Minute ();
     }
@@ -687,7 +719,21 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
 
-                new SendMessageThread("test").start();
+                // send command to ask for historic HR, calories
+                byte[] byteArrayCommand = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(HISTORIC_CALS_COMMAND).array();
+
+                long date = new DataBaseCalories(context).DataBaseGetLastMeasurementDate();
+                // if date == 0, then database is empty
+                if (date == 0) {
+                    // ask for values from last 48h
+                    date = System.currentTimeMillis();
+                    date = date - (date % 60000); // get date at start of a minute
+                    date = date - (48*60*60*1000); // go 48h backwards
+                }
+
+                byte[] byteArrayDate = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(date).array();
+                byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayDate);
+                new SendMessageThread(messageBytes).start();
             }
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
@@ -705,10 +751,10 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     // code from: https://github.com/JimSeker/wearable/blob/master/WearableDataLayer/wear/src/main/java/edu/cs4730/wearabledatalayer/MainActivity.java
     class SendMessageThread extends Thread {
-        String message;
+        byte[] message;
 
         //constructor
-        SendMessageThread(String msg) {
+        SendMessageThread(byte[] msg) {
             message = msg;
         }
 
@@ -726,7 +772,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 //Now send the message to each device.
                 for (Node node : nodes) {
                     Task<Integer> sendMessageTask =
-                            Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), MESSAGE_PATH, message.getBytes());
+                            Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), MESSAGE_PATH, message);
                 }
             } catch (ExecutionException exception) {
                 Log.e("SendMessageThread", "Node Task failed: " + exception);

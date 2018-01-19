@@ -12,13 +12,14 @@ import java.util.ArrayList;
 
 public class DataBaseCalories extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 8;
     private static final String DATABASE_DIR = "body_fat_control";
     private static final String DATABASE_NAME = "database_calories.db";
-    private static final String TABLE_NAME = "calories_out";
+    private static final String TABLE_NAME = "cals_out";
     private static final String COLUMN_DATE = "date";
-    private static final String COLUMN_CALORIES_VALUE = "calories_value";
-    private static final String COLUMN_EER_CALORIES_PER_MINUTE_VALUE = "eer_calories_per_minute_value";
+    private static final String COLUMN_HR = "hr";
+    private static final String COLUMN_CALORIES_PER_MINUTE_VALUE = "cals_minute";
+    private static final String COLUMN_CALORIES_EER_PER_MINUTE_VALUE = "cals_eer_minute";
 
     public DataBaseCalories(Context context) {
         super(context, Environment.getExternalStorageDirectory()
@@ -30,8 +31,9 @@ public class DataBaseCalories extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE_NAME + " (" +
                 COLUMN_DATE + " integer UNIQUE, " + /* UNIQUE means that there will not be duplicate entries with the same date */
-                COLUMN_CALORIES_VALUE + " integer," +
-                COLUMN_EER_CALORIES_PER_MINUTE_VALUE + " integer)");
+                COLUMN_HR + " integer," +
+                COLUMN_CALORIES_PER_MINUTE_VALUE + " real," +
+                COLUMN_CALORIES_EER_PER_MINUTE_VALUE + " real)");
     }
 
     @Override
@@ -47,8 +49,9 @@ public class DataBaseCalories extends SQLiteOpenHelper {
 
         for (Measurement measurement : measurementList) {
             values.put(COLUMN_DATE, measurement.getDate());
-            values.put(COLUMN_CALORIES_VALUE, measurement.getCalories());
-            values.put(COLUMN_EER_CALORIES_PER_MINUTE_VALUE, measurement.getCaloriesEERPerMinute());
+            values.put(COLUMN_HR, measurement.getHR());
+            values.put(COLUMN_CALORIES_PER_MINUTE_VALUE, measurement.getCalories());
+            values.put(COLUMN_CALORIES_EER_PER_MINUTE_VALUE, measurement.getCaloriesEERPerMinute());
 
             // Inserting Row
             db.insertWithOnConflict(TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE);
@@ -69,19 +72,22 @@ public class DataBaseCalories extends SQLiteOpenHelper {
         // Loop to put all the values to the ArrayList<Measurement>
         cursor.moveToFirst();
         int counter = cursor.getCount();
-        int date;
-        int calories;
-        int caloriesEERPerMinute;
+        long date;
+        int HR;
+        double calories;
+        double caloriesEERPerMinute;
         ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
         for ( ; counter > 0; ) {
             if (cursor.isAfterLast()) break;
-            date = cursor.getInt(cursor.getColumnIndex(COLUMN_DATE));
-            calories = cursor.getInt(cursor.getColumnIndex(COLUMN_CALORIES_VALUE));
-            caloriesEERPerMinute = cursor.getInt(cursor.getColumnIndex(COLUMN_EER_CALORIES_PER_MINUTE_VALUE));
+            date = cursor.getLong(cursor.getColumnIndex(COLUMN_DATE));
+            HR = cursor.getInt(cursor.getColumnIndex(COLUMN_HR));
+            calories = cursor.getDouble(cursor.getColumnIndex(COLUMN_CALORIES_PER_MINUTE_VALUE));
+            caloriesEERPerMinute = cursor.getDouble(cursor.getColumnIndex(COLUMN_CALORIES_EER_PER_MINUTE_VALUE));
             cursor.moveToNext();
 
             Measurement measurement = new Measurement();
             measurement.setDate(date);
+            measurement.setHR(HR);
             measurement.setCalories(calories);
             measurement.setCaloriesEERPerMinute(caloriesEERPerMinute);
             measurementList.add(measurement);
@@ -100,7 +106,7 @@ public class DataBaseCalories extends SQLiteOpenHelper {
         Cursor cursor = db.rawQuery(query, null);
         long date = 0;
         if (cursor.moveToFirst() == true) { // if cursor is not empty
-            date = cursor.getInt(cursor.getColumnIndex(COLUMN_DATE));
+            date = cursor.getLong(cursor.getColumnIndex(COLUMN_DATE));
         }
 
         cursor.close();

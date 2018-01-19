@@ -48,7 +48,7 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
         mRadioGroup = (RadioGroup) findViewById(R.id.radio_button_group);
 
         // set the radio button Meal Time depending on the current time
-        int radioButtonNumber = utils.returnMealTimeRadioButtonNumber();
+        int radioButtonNumber = Utils.returnMealTimeRadioButtonNumber();
         RadioButton radioButton = (RadioButton) mRadioGroup.getChildAt(radioButtonNumber);
         radioButton.setChecked(true);
 
