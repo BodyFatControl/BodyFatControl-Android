@@ -238,14 +238,17 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 if (command == MainActivity.HISTORIC_CALS_COMMAND) {
                     ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
 
-                    int measurementByteSize = Long.SIZE + Integer.SIZE + Double.SIZE + Double.SIZE;
-                    int messageNumberOfMeasurements = (message.length - 8) / measurementByteSize;
+                    int measurementByteSize = (Long.SIZE + Integer.SIZE + Double.SIZE + Double.SIZE) / Byte.SIZE;
+                    int messageNumberOfMeasurements = (message.length - (Long.SIZE/Byte.SIZE)) / measurementByteSize;
+                    int nm = messageNumberOfMeasurements;
 
+                    long d = 0;
                     int i = 8;
                     for ( ; messageNumberOfMeasurements > 0; messageNumberOfMeasurements--) {
                         Measurement measurement = new Measurement();
 
                         long date = ByteArrayToLong(ArrayUtils.subarray(message, i, i += 8));
+                        d = date;
                         measurement.setDate(date);
 
                         int HR = ByteArrayToInt(ArrayUtils.subarray(message, i, i += 4));
@@ -259,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                         measurementList.add(measurement);
                     }
-
+                    
                     new DataBaseCalories(context).DataBaseWriteMeasurement(measurementList);
                 }
             }
@@ -730,6 +733,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                     date = date - (date % 60000); // get date at start of a minute
                     date = date - (48*60*60*1000); // go 48h backwards
                 }
+                date += 60000; // so we need to add 1 minute, because we want next minute value
 
                 byte[] byteArrayDate = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(date).array();
                 byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayDate);
