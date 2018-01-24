@@ -30,8 +30,8 @@ public class GraphData {
         ArrayList<Measurement> measurementList = dataBase.DataBaseGetMeasurements(mInitialDate, mFinalDate);
 
         long date = 0;
-        long endOfToday = (MainActivity.SECONDS_24H - 1) / 60;
-        long graphFinalDate = (mFinalDate - mInitialDate) / 60; // in minutes
+        long endOfToday = (MainActivity.SECONDS_24H / 60000) - 1; // in minutes
+        long graphFinalDate = (mFinalDate - mInitialDate) / 60000; // in minutes
         double caloriesEERPerMinute = 0;
         Iterator measurementListIterator = measurementList.iterator();
         Measurement measurement = null;
@@ -61,16 +61,18 @@ public class GraphData {
                     measurement = null;
                 }
 
-                graphDataEntriesList.add(new Entry((float) date / 60, (float) (caloriesActiveSum/1000 + (mCurrentCaloriesEER/10/1000))));
+                graphDataEntriesList.add(new Entry((float) date / 60, (float) (caloriesActiveSum + (mCurrentCaloriesEER/10))));
             }
 
             if (date == endOfToday && (mInitialDate < (MainActivity.mMidNightToday/60))) { //  last point
-                graphDataEntriesList.add(new Entry((float) date / 60, (float) (caloriesActiveSum/1000 + (mCurrentCaloriesEER/10/1000))));
+                graphDataEntriesList.add(new Entry((float) date / 60, (float) (caloriesActiveSum + (mCurrentCaloriesEER/10))));
             }
         }
 
-        mCurrentCaloriesEER /= 1000;
-        mCaloriesActive = caloriesActiveSum/1000;
+//        mCurrentCaloriesEER /= 1000;
+//        mCaloriesActive = caloriesActiveSum/1000;
+
+        mCaloriesActive = caloriesActiveSum;
         return graphDataEntriesList;
     }
 
@@ -91,12 +93,12 @@ public class GraphData {
 
         // Get the measurements from midnight today
         DataBaseLogFoods dataBaseLogFoods = new DataBaseLogFoods(mContext);
-        ArrayList<Foods> foodsList = dataBaseLogFoods.DataBaseLogFoodsGetFoods(mInitialDate*1000, mFinalDate*1000);
+        ArrayList<Foods> foodsList = dataBaseLogFoods.DataBaseLogFoodsGetFoods(mInitialDate, mFinalDate);
 
         long date = 0;
         long foodDate = 0;
-        long endOfToday = MainActivity.SECONDS_24H - 1;
-        long graphFinalDate = mFinalDate - mInitialDate;
+        long endOfToday = (MainActivity.SECONDS_24H / 1000) - 1; // in seconds
+        long graphFinalDate = (mFinalDate - mInitialDate) / 1000; // in seconds
         Iterator foodsListIterator = foodsList.iterator();
         Foods food = null;
         double caloriesSum = 0;
@@ -110,7 +112,7 @@ public class GraphData {
 
             if ((moveToNextFood == true) && foodsListIterator.hasNext()) {
                 food = (Foods) foodsListIterator.next();
-                foodDate = (food.getDate() / 1000) - mInitialDate;
+                foodDate = (food.getDate() - mInitialDate) / 1000; // in seconds
                 moveToNextFood = false;
             }
 
@@ -139,7 +141,7 @@ public class GraphData {
 
                 if (foodsListIterator.hasNext()) { // iterate on the foods in the same interval
                     food = (Foods) foodsListIterator.next();
-                    foodDate = (food.getDate() / 1000) - mInitialDate;
+                    foodDate = (food.getDate() - mInitialDate) / 1000; // in seconds
                 } else  {
                     break;
                 }

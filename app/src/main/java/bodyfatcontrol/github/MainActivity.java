@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private long mGraphInitialDate;
     private long mGraphFinalDate;
     private long mLastUpdateDate = 0;
-    public static final long SECONDS_24H = 24*60*60;
+    public static final long SECONDS_24H = 24*60*60*1000;
     private double mCurrentCaloriesEER = 0.0;
     private double mCaloriesActive = 0.0;
     private double mCaloriesConsumed = 0.0;
@@ -262,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                         measurementList.add(measurement);
                     }
-                    
+
                     new DataBaseCalories(context).DataBaseWriteMeasurement(measurementList);
                 }
             }
@@ -286,13 +286,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         Calendar rightNow = Calendar.getInstance();
         long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
         long rightNowMillis = rightNow.getTimeInMillis() + offset;
-        long sinceMidnightToday = rightNowMillis % (24 * 60 * 60 * 1000);
+        long sinceMidnightToday = rightNowMillis % (24*60*60*1000);
         long midNightToday = rightNowMillis - sinceMidnightToday;
-        long now = rightNowMillis / 1000; // now in seconds
-        midNightToday /= 1000; // now in seconds
         mMidNightToday = midNightToday;
         mGraphInitialDate = midNightToday;
-        mGraphFinalDate = now;
+        mGraphFinalDate = rightNowMillis;
+
+        drawGraphs();
+        drawListConsumedFoods();
     }
 
     @Override
@@ -526,7 +527,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     void drawListConsumedFoods () {
         // Populate the listview of logged foods
         // Start by getting the data from the database and then put on the array adapter, finally to the list
-        mArrayListLogFood = mDataBaseLogFoods.DataBaseLogFoodsGetFoodsAndMeals(mGraphInitialDate*1000, mGraphFinalDate*1000);
+        mArrayListLogFood = mDataBaseLogFoods.DataBaseLogFoodsGetFoodsAndMeals(mGraphInitialDate, mGraphFinalDate);
         ArrayAdapter<Object> arrayAdapterLogFoods = new LogFoodAdapter(this, mArrayListLogFood);
         listViewLogFoodList.setAdapter(arrayAdapterLogFoods);
     }
@@ -623,20 +624,19 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                             Calendar rightNow = Calendar.getInstance();
                             long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
-                            long rightNowMillis = rightNow.getTimeInMillis() + offset;
-                            mGraphFinalDate = rightNowMillis / 1000; // seconds
+                            mGraphFinalDate = rightNow.getTimeInMillis() + offset;
 
                             mIsToday = true;
 
                         } else if (mGraphInitialDate == (mMidNightToday - SECONDS_24H)) { // yesterday
                             mDateTitle.setText("yesterday");
-                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - (1 * 60); // seconds, 24*59*60
+                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
 
                         } else { // other days
                             SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy");
-                            String dateString = formatter.format(new Date(mGraphInitialDate * 1000L));
+                            String dateString = formatter.format(new Date(mGraphInitialDate));
                             mDateTitle.setText(dateString);
-                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - (1 * 60); // seconds, 24*59*60
+                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
                         }
 
                         drawGraphs();
@@ -652,13 +652,13 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                         if (mGraphInitialDate == (mMidNightToday - SECONDS_24H)) { // yesterday
                             mDateTitle.setText("yesterday");
-                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - (1 * 60); // seconds, 24*59*60
+                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
 
                         } else { // other days
                             SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy");
-                            String dateString = formatter.format(new Date(mGraphInitialDate * 1000L));
+                            String dateString = formatter.format(new Date(mGraphInitialDate));
                             mDateTitle.setText(dateString);
-                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - (1 * 60); // seconds, 24*59*60
+                            mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
                         }
 
                         drawGraphs();
