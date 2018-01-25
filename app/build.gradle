@@ -9,14 +9,14 @@ android {
             storePassword 'U47L5Vfbkz3MgzJsxNT'
         }
     }
-    compileSdkVersion 25
+    compileSdkVersion 26
     buildToolsVersion '26.0.2'
     defaultConfig {
         applicationId 'bodyfatcontrol.github'
-        minSdkVersion 21
-        targetSdkVersion 25
-        versionCode 6
-        versionName "2.0.0"
+        minSdkVersion 24
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -32,18 +32,18 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:25.2.0'
-    compile 'com.android.support:design:25.2.0'
+    compile 'com.android.support:appcompat-v7:26.1.0'
+    compile 'com.android.support:design:26.1.0'
     testCompile 'junit:junit:4.12'
     compile 'com.google.code.gson:gson:2.7'
     compile 'com.github.PhilJay:MPAndroidChart:v3.0.3'
     compile 'com.google.android.gms:play-services-analytics:11.8.0'
-    compile 'com.google.android.gms:play-services-wearable:11.8.0'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     compile 'com.google.guava:guava:23.6-android'
+    implementation 'com.android.support:wear:26.1.0'
+    compile 'com.google.android.gms:play-services-wearable:11.8.0'
+    provided 'com.google.android.wearable:wearable:2.1.0'
+    compile 'com.google.android.support:wearable:2.1.0'
 }
 
 

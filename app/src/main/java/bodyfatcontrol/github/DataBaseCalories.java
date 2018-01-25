@@ -113,4 +113,20 @@ public class DataBaseCalories extends SQLiteOpenHelper {
         db.close(); // Closing database connection
         return date;
     }
+
+    public double DataBaseGetLastCaloriesEERPerMinute() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        // build the query
+        String query = "SELECT * FROM " + TABLE_NAME + " ORDER BY " + COLUMN_DATE + " DESC LIMIT 1";
+        // open database
+        Cursor cursor = db.rawQuery(query, null);
+        double caloriesEERPerMinute = 0;
+        if (cursor.moveToFirst() == true) { // if cursor is not empty
+            caloriesEERPerMinute = cursor.getDouble(cursor.getColumnIndex(COLUMN_CALORIES_EER_PER_MINUTE_VALUE));
+        }
+
+        cursor.close();
+        db.close(); // Closing database connection
+        return caloriesEERPerMinute;
+    }
 }

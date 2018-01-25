@@ -32,7 +32,7 @@ public class GraphData {
         long date = 0;
         long endOfToday = (MainActivity.SECONDS_24H / 60000) - 1; // in minutes
         long graphFinalDate = (mFinalDate - mInitialDate) / 60000; // in minutes
-        double caloriesEERPerMinute = 0;
+        double caloriesEERPerMinute = dataBase.DataBaseGetLastCaloriesEERPerMinute();
         Iterator measurementListIterator = measurementList.iterator();
         Measurement measurement = null;
         double caloriesActiveSum = 0;
