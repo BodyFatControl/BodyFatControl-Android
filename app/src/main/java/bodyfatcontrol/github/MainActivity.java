@@ -97,7 +97,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private ListView listViewLogFoodList;
     private TextView mDateTitle;
     private TextView textViewLastUpdateDate;
-    private ImageView mImageViewConnect;
     public static long mMidNightToday;
     private long mGraphInitialDate;
     private long mGraphFinalDate;
@@ -123,6 +122,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private PendingIntent alarmIntent;
 
     public static final String MESSAGE_PATH = "/notification";
+
+    private double mLastSynchDate = System.currentTimeMillis();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,8 +194,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         listViewLogFoodList = (ListView) findViewById(R.id.log_food_list);
         listViewLogFoodList.setLongClickable(true);
         textViewLastUpdateDate = (TextView) findViewById(R.id.last_update_date);
-        mImageViewConnect = (ImageView) findViewById(R.id.connect);
-        mImageViewConnect.setVisibility(View.INVISIBLE);
+        textViewLastUpdateDate.setText("syncing");
 
         // Button for edit or delete a food from the list
         listViewLogFoodList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -242,6 +242,9 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 byte[] message = intent.getByteArrayExtra("MESSAGE");
                 long command = ByteArrayToLong(ArrayUtils.subarray(message, 0, 8));
                 if (command == MainActivity.HISTORIC_CALS_COMMAND) {
+                    textViewLastUpdateDate.setText("updated");
+                    mLastSynchDate = System.currentTimeMillis();
+
                     ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
 
                     int measurementByteSize = (Long.SIZE + Integer.SIZE + Double.SIZE + Double.SIZE) / Byte.SIZE;
@@ -300,6 +303,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         drawGraphs();
         drawListConsumedFoods();
+
+        sendCommandHistoricCalories ();
     }
 
     @Override
@@ -728,22 +733,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
                 alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
 
-                // send command to ask for historic HR, calories
-                byte[] byteArrayCommand = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(HISTORIC_CALS_COMMAND).array();
-
-                long date = new DataBaseCalories(context).DataBaseGetLastMeasurementDate();
-                // if date == 0, then database is empty
-                if (date == 0) {
-                    // ask for values from last 48h
-                    date = System.currentTimeMillis();
-                    date = date - (date % 60000); // get date at start of a minute
-                    date = date - (48*60*60*1000); // go 48h backwards
-                }
-                date += 60000; // so we need to add 1 minute, because we want next minute value
-
-                byte[] byteArrayDate = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(date).array();
-                byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayDate);
-                new SendMessageThread(messageBytes).start();
+                sendCommandHistoricCalories();
+                updateTextViewLastUpdate();
             }
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
@@ -757,6 +748,25 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         long millisNextMinute = System.currentTimeMillis();
         millisNextMinute = (millisNextMinute - (millisNextMinute % 60000)) + 60000;
         alarmMgr.setExact(AlarmManager.RTC_WAKEUP, millisNextMinute , alarmIntent);
+    }
+
+    void sendCommandHistoricCalories () {
+        // send command to ask for historic HR, calories
+        byte[] byteArrayCommand = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(HISTORIC_CALS_COMMAND).array();
+
+        long date = new DataBaseCalories(context).DataBaseGetLastMeasurementDate();
+        // if date == 0, then database is empty
+        if (date == 0) {
+            // ask for values from last 48h
+            date = System.currentTimeMillis();
+            date = date - (date % 60000); // get date at start of a minute
+            date = date - (48*60*60*1000); // go 48h backwards
+        }
+        date += 60000; // so we need to add 1 minute, because we want next minute value
+
+        byte[] byteArrayDate = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(date).array();
+        byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayDate);
+        new SendMessageThread(messageBytes).start();
     }
 
     // code from: https://github.com/JimSeker/wearable/blob/master/WearableDataLayer/wear/src/main/java/edu/cs4730/wearabledatalayer/MainActivity.java
@@ -789,6 +799,15 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             } catch (InterruptedException exception) {
                 Log.e("SendMessageThread", "Node Interrupt occurred: " + exception);
             }
+        }
+    }
+
+    void updateTextViewLastUpdate() {
+        int minutesSinceLastUpdate = (int) ((System.currentTimeMillis() - mLastSynchDate) / 60000);
+        if (minutesSinceLastUpdate > 0) {
+            textViewLastUpdateDate.setText(Integer.toString(minutesSinceLastUpdate) + " min ago");
+        } else {
+            textViewLastUpdateDate.setText("syncing");
         }
     }
 }
