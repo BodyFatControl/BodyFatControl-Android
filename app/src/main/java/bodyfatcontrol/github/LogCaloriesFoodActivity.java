@@ -10,8 +10,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
@@ -21,13 +19,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class LogCaloriesFoodActivity extends AppCompatActivity {
-    private Foods mFood;
     private EditText mEditTextServingSizeEntry = null;
     private TextView mEditTextCalories = null;
+    private TextView mTextViewMealTime = null;
     private EditText mEditTextDate = null;
     private EditText mEditTextTime = null;
     private Button mButtonLogThis = null;
-    private RadioGroup mRadioGroup = null;
     java.util.Calendar mCalendarDate = java.util.Calendar.getInstance();
 
     @Override
@@ -45,17 +42,13 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
         final EditText editTextBrand = (EditText) findViewById(R.id.brand);
         final Spinner spinnerUnityType = (Spinner) findViewById(R.id.spinner_foods_unity_type);
         mEditTextCalories = (EditText) findViewById(R.id.calories);
-        mRadioGroup = (RadioGroup) findViewById(R.id.radio_button_group);
-
-        // set the radio button Meal Time depending on the current time
-        int radioButtonNumber = Utils.returnMealTimeRadioButtonNumber();
-        RadioButton radioButton = (RadioButton) mRadioGroup.getChildAt(radioButtonNumber);
-        radioButton.setChecked(true);
-
+        mTextViewMealTime = (TextView) findViewById(R.id.meal_time);
         mEditTextDate = (EditText) findViewById(R.id.date);
         mEditTextTime = (EditText) findViewById(R.id.time);
         mEditTextServingSizeEntry = (EditText) findViewById(R.id.serving_size_entry);
         mButtonLogThis = (Button) findViewById(R.id.button_log_this);
+
+        mTextViewMealTime.setText(Utils.returnMealTime());
 
         // Set a custom spinner default value
         ArrayAdapter myAdap = (ArrayAdapter) spinnerUnityType.getAdapter(); //cast to an ArrayAdapter
@@ -153,10 +146,7 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
                             mEditTextCalories.setError(null);
                             food.setCaloriesLogged(Integer.parseInt(mEditTextCalories.getText().toString()));
 
-                            RadioGroup radiogroup = (RadioGroup) findViewById(R.id.radio_button_group);
-                            int selectedId = radiogroup.getCheckedRadioButtonId(); // get selected radio button from radioGroup
-                            RadioButton radioButton = (RadioButton) findViewById(selectedId); // find the radio button by returned id
-                            food.setMealTime(radioButton.getText().toString());
+                            food.setMealTime(mTextViewMealTime.getText().toString());
 
                             long date = 0;
                             String givenDateString = mEditTextDate.getText().toString() + " " + mEditTextTime.getText().toString();

@@ -5,18 +5,22 @@ import java.util.Calendar;
 
 public class Utils {
 
-    static public int returnMealTimeRadioButtonNumber () {
+    static public String returnMealTime () {
         int hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int radioButtonNumber;
-        
-        if      (hourOfDay >= 0  && hourOfDay < 10) radioButtonNumber = 0; // breakfast
-        else if (hourOfDay >= 10 && hourOfDay < 12) radioButtonNumber = 1; // morning snack
-        else if (hourOfDay >= 12 && hourOfDay < 15) radioButtonNumber = 2; // lunch
-        else if (hourOfDay >= 15 && hourOfDay < 19) radioButtonNumber = 3; // afternoon snack
-        else if (hourOfDay >= 19 && hourOfDay < 22) radioButtonNumber = 4; // dinner
-        else                                        radioButtonNumber = 5; // evening snack
 
-        return radioButtonNumber;
+        if (hourOfDay >= 0  && hourOfDay < 10) {
+            return "Breakfast";
+        } else if (hourOfDay >= 10 && hourOfDay < 12) {
+            return "Morning snack";
+        } else if (hourOfDay >= 12 && hourOfDay < 15) {
+            return "Lunch";
+        } else if (hourOfDay >= 15 && hourOfDay < 19) {
+            return "Afternoon snack";
+        } else if (hourOfDay >= 19 && hourOfDay < 22) {
+            return "Dinner";
+        } else {
+            return "Evening snack";
+        }
     }
 
     public static byte[] IntToByteArray(int value) {

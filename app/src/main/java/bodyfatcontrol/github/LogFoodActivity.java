@@ -11,8 +11,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -24,10 +22,10 @@ public class LogFoodActivity extends AppCompatActivity {
     private Foods mFood;
     private EditText mEditTextServingSizeEntry = null;
     private TextView mTextViewCalories = null;
+    private TextView mTextViewMealTime = null;
     private EditText mEditTextDate = null;
     private EditText mEditTextTime = null;
     private Button mButtonLogThis = null;
-    private RadioGroup mRadioGroup = null;
     java.util.Calendar mCalendarDate = java.util.Calendar.getInstance();
 
     @Override
@@ -45,7 +43,7 @@ public class LogFoodActivity extends AppCompatActivity {
         final TextView textViewBrand = (TextView) findViewById(R.id.brand);
         final TextView textViewFoodUnityType = (TextView) findViewById(R.id.food_unity_type);
         mTextViewCalories = (TextView) findViewById(R.id.calories);
-        mRadioGroup = (RadioGroup) findViewById(R.id.radio_button_group);
+        mTextViewMealTime = (TextView) findViewById(R.id.meal_time);
         mEditTextDate = (EditText) findViewById(R.id.date);
         mEditTextTime = (EditText) findViewById(R.id.time);
         mEditTextServingSizeEntry = (EditText) findViewById(R.id.serving_size_entry);
@@ -60,10 +58,7 @@ public class LogFoodActivity extends AppCompatActivity {
         textViewFoodUnityType.setText(mFood.getUnitType());
         mTextViewCalories.setText("");
 
-        // set the radio button Meal Time depending on the current time
-        int radioButtonNumber = Utils.returnMealTimeRadioButtonNumber();
-        RadioButton radioButton = (RadioButton) mRadioGroup.getChildAt(radioButtonNumber);
-        radioButton.setChecked(true);
+        mTextViewMealTime.setText(Utils.returnMealTime());
 
         mEditTextServingSizeEntry.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(Editable s) {
@@ -167,10 +162,7 @@ public class LogFoodActivity extends AppCompatActivity {
 
                     newFood.setCaloriesLogged(Integer.parseInt(mTextViewCalories.getText().toString()));
 
-                    RadioGroup radiogroup = (RadioGroup) findViewById(R.id.radio_button_group);
-                    int selectedId = radiogroup.getCheckedRadioButtonId(); // get selected radio button from radioGroup
-                    RadioButton radioButton = (RadioButton) findViewById(selectedId); // find the radio button by returned id
-                    newFood.setMealTime(radioButton.getText().toString());
+                    newFood.setMealTime(mTextViewMealTime.getText().toString());
 
                     long date = 0;
                     String givenDateString = mEditTextDate.getText().toString() + " " + mEditTextTime.getText().toString();

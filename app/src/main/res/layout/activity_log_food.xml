@@ -14,8 +14,8 @@
             android:id="@+id/food_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingTop="10dp"
             android:paddingBottom="6dp"
             android:textSize="@dimen/title_text_size"
@@ -25,8 +25,8 @@
             android:id="@+id/brand"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingBottom="10dp"
             android:textSize="@dimen/title2_text_size"
             android:text="---" />
@@ -34,8 +34,8 @@
         <View
             android:layout_width="match_parent"
             android:layout_height= "2dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
             android:background="#c0c0c0" />
@@ -43,8 +43,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:weightSum="1">
 
             <TextView
@@ -67,7 +67,6 @@
                 android:id="@+id/serving_size_entry"
                 android:textSize="@dimen/title2_text_size"
                 android:hint="1"
-                android:numeric="integer|decimal"
                 android:imeOptions="actionDone" />
 
             <TextView
@@ -103,8 +102,8 @@
         <View
             android:layout_width="match_parent"
             android:layout_height= "2dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
             android:background="#c0c0c0" />
@@ -113,120 +112,39 @@
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:weightSum="1"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
             android:paddingTop="10dp"
-            android:paddingBottom="10dp">
+            android:weightSum="1">
 
-            <android.support.v4.widget.Space
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="4dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.5"/>
-
-            <Button
-                android:id="@+id/button_log_this"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
                 android:layout_weight="0.5"
-                android:text="LOG THIS"/>
-        </LinearLayout>
+                android:paddingEnd="4dp"
+                android:text="Meals and Snacks Time"
+                android:textSize="@dimen/text_size_xl" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height= "2dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:background="#c0c0c0"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:layout_weight="0.5"
-            android:textSize="@dimen/text_size_xl"
-            android:text="Meals and Snacks Time" />
-
-        <RadioGroup
-            android:id="@+id/radio_button_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <RadioButton
-                android:id="@+id/radio_button_breakfast"
-                android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/meal_time"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textSize="@dimen/text_size_m"
+                android:layout_weight="0.5"
                 android:text="BREAKFAST"
-                android:checked="false"
-                android:duplicateParentState="false" />
-
-            <RadioButton
-                android:id="@+id/radio_button_morning_snack"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="MORNING SNACK"
-                android:textSize="@dimen/text_size_m"
-                android:checked="false" />
-
-            <RadioButton
-                android:id="@+id/radio_button_lunch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="LUNCH"
-                android:textSize="@dimen/text_size_m"
-                android:checked="false" />
-
-            <RadioButton
-                android:id="@+id/radio_button_afternoon_snack"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="AFTERNOON SNACK"
-                android:textSize="@dimen/text_size_m"
-                android:checked="false" />
-
-            <RadioButton
-                android:id="@+id/radio_button_diner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="DINNER"
-                android:textSize="@dimen/text_size_m"
-                android:checked="false" />
-
-            <RadioButton
-                android:id="@+id/radio_button_evening_snack"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="EVENING SNACK"
-                android:textSize="@dimen/text_size_m" />
-
-        </RadioGroup>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height= "2dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:background="#c0c0c0"/>
+                android:textSize="@dimen/title2_text_size" />
+        </LinearLayout>
 
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:weightSum="1"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp">
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingTop="10dp"
-                android:paddingBottom="5dp"
                 android:layout_weight="0.5"
                 android:textSize="@dimen/text_size_xl"
                 android:text="Date" />
@@ -234,8 +152,6 @@
             <EditText
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingTop="10dp"
-                android:paddingBottom="5dp"
                 android:layout_weight="0.5"
                 android:inputType="text|number"
                 android:id="@+id/date"
@@ -248,8 +164,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:weightSum="1"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp">
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
 
             <android.support.v4.widget.Space
                 android:layout_width="0dp"
@@ -272,6 +188,31 @@
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
             android:background="#c0c0c0"/>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="1"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <android.support.v4.widget.Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"/>
+
+            <Button
+                android:id="@+id/button_log_this"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:layout_weight="0.5"
+                android:text="LOG THIS"/>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
