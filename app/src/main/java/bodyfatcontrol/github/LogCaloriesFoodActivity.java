@@ -2,7 +2,6 @@ package bodyfatcontrol.github;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.icu.util.Calendar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -16,6 +15,7 @@ import android.widget.TimePicker;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class LogCaloriesFoodActivity extends AppCompatActivity {
@@ -48,7 +48,8 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
         mEditTextServingSizeEntry = (EditText) findViewById(R.id.serving_size_entry);
         mButtonLogThis = (Button) findViewById(R.id.button_log_this);
 
-        mTextViewMealTime.setText(Utils.returnMealTime());
+        int hourOfDay = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        mTextViewMealTime.setText(Utils.returnMealTime(hourOfDay));
 
         // Set a custom spinner default value
         ArrayAdapter myAdap = (ArrayAdapter) spinnerUnityType.getAdapter(); //cast to an ArrayAdapter
@@ -108,6 +109,8 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
 
                             mEditTextTime.setText(mCalendarDate.get(Calendar.HOUR_OF_DAY) + "h" +
                                     (mCalendarDate.get(Calendar.MINUTE)));
+
+                            mTextViewMealTime.setText(Utils.returnMealTime(mCalendarDate.get(Calendar.HOUR_OF_DAY)));
                         }
                     }, mCalendarDate.get(Calendar.HOUR_OF_DAY), mCalendarDate.get(Calendar.MINUTE), true);//Yes 24 hour time
                     mTimePicker.setTitle("Select Time");

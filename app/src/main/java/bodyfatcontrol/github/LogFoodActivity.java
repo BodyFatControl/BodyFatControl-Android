@@ -2,7 +2,6 @@ package bodyfatcontrol.github;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.icu.util.Calendar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -16,6 +15,7 @@ import android.widget.TimePicker;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class LogFoodActivity extends AppCompatActivity {
@@ -58,7 +58,8 @@ public class LogFoodActivity extends AppCompatActivity {
         textViewFoodUnityType.setText(mFood.getUnitType());
         mTextViewCalories.setText("");
 
-        mTextViewMealTime.setText(Utils.returnMealTime());
+        int hourOfDay = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        mTextViewMealTime.setText(Utils.returnMealTime(hourOfDay));
 
         mEditTextServingSizeEntry.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(Editable s) {
@@ -132,6 +133,8 @@ public class LogFoodActivity extends AppCompatActivity {
 
                             mEditTextTime.setText(mCalendarDate.get(Calendar.HOUR_OF_DAY) + "h" +
                                     (mCalendarDate.get(Calendar.MINUTE)));
+
+                            mTextViewMealTime.setText(Utils.returnMealTime(mCalendarDate.get(Calendar.HOUR_OF_DAY)));
                         }
                     }, mCalendarDate.get(Calendar.HOUR_OF_DAY), mCalendarDate.get(Calendar.MINUTE), true);//Yes 24 hour time
                     mTimePicker.setTitle("Select Time");

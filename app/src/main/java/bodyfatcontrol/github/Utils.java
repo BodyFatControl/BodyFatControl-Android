@@ -5,9 +5,7 @@ import java.util.Calendar;
 
 public class Utils {
 
-    static public String returnMealTime () {
-        int hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-
+    static public String returnMealTime (int hourOfDay) {
         if (hourOfDay >= 0  && hourOfDay < 10) {
             return "Breakfast";
         } else if (hourOfDay >= 10 && hourOfDay < 12) {
