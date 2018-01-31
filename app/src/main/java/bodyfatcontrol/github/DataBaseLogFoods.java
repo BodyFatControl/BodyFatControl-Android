@@ -159,19 +159,23 @@ public class DataBaseLogFoods extends SQLiteOpenHelper {
 
         Cursor cursor = db.rawQuery(query, null);
         cursor.moveToFirst();
+        int counter = cursor.getCount();
 
-        Foods food = new Foods();
-        food.setId(cursor.getInt(cursor.getColumnIndex(COLUMN_ID)));
-        food.setDate(cursor.getLong(cursor.getColumnIndex(COLUMN_DATE)));
-        food.setName(cursor.getString(cursor.getColumnIndex(COLUMN_NAME)));
-        food.setBrand(cursor.getString(cursor.getColumnIndex(COLUMN_BRAND)));
-        food.setUnits(cursor.getFloat(cursor.getColumnIndex(COLUMN_UNITS)));
-        food.setUnitType(cursor.getString(cursor.getColumnIndex(COLUMN_UNIT_TYPE)));
-        food.setCalories(cursor.getInt(cursor.getColumnIndex(COLUMN_CALORIES)));
-        food.setUnitsLogged(cursor.getFloat(cursor.getColumnIndex(COLUMN_UNITS_LOGGED)));
-        food.setCaloriesLogged(cursor.getInt(cursor.getColumnIndex(COLUMN_CALORIES_LOGGED)));
-        food.setMealTime(cursor.getString(cursor.getColumnIndex(COLUMN_MEAL_TIME)));
-        food.setIsCustomCalories(cursor.getInt(cursor.getColumnIndex(COLUMN_IS_CUSTOM_CALORIES)) == 1);
+        Foods food = null;
+        if (counter > 0) {
+            food = new Foods();
+            food.setId(cursor.getInt(cursor.getColumnIndex(COLUMN_ID)));
+            food.setDate(cursor.getLong(cursor.getColumnIndex(COLUMN_DATE)));
+            food.setName(cursor.getString(cursor.getColumnIndex(COLUMN_NAME)));
+            food.setBrand(cursor.getString(cursor.getColumnIndex(COLUMN_BRAND)));
+            food.setUnits(cursor.getFloat(cursor.getColumnIndex(COLUMN_UNITS)));
+            food.setUnitType(cursor.getString(cursor.getColumnIndex(COLUMN_UNIT_TYPE)));
+            food.setCalories(cursor.getInt(cursor.getColumnIndex(COLUMN_CALORIES)));
+            food.setUnitsLogged(cursor.getFloat(cursor.getColumnIndex(COLUMN_UNITS_LOGGED)));
+            food.setCaloriesLogged(cursor.getInt(cursor.getColumnIndex(COLUMN_CALORIES_LOGGED)));
+            food.setMealTime(cursor.getString(cursor.getColumnIndex(COLUMN_MEAL_TIME)));
+            food.setIsCustomCalories(cursor.getInt(cursor.getColumnIndex(COLUMN_IS_CUSTOM_CALORIES)) == 1);
+        }
 
         cursor.close();
         db.close(); // Closing database connection

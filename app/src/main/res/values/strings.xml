@@ -36,4 +36,9 @@
         <item>tbsp</item>
         <item>tsp</item>
     </string-array>
+
+    <string-array name="user_profile_gender">
+        <item>female</item>
+        <item>male</item>
+    </string-array>
 </resources>

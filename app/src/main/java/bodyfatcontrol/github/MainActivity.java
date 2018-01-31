@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -113,17 +114,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private DataBaseUserProfile mDataBaseUserProfile = null;
     private UserProfile mUserProfile = null;
     public static Context context;
-
+    public static SharedPreferences sharedPreferences;
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
-
     private BroadcastReceiver mBroadcastReceiver;
-
     private AlarmManager alarmMgr;
     private PendingIntent alarmIntent;
-
     public static final String MESSAGE_PATH = "/notification";
-
     private double mLastSynchDate = System.currentTimeMillis();
+    private boolean mSendMessageIsEnable = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +140,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mDrawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
@@ -151,7 +148,12 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        context = getApplication().getApplicationContext();
+        sharedPreferences = context.getSharedPreferences(
+                "bodyfatcontrol.github.PREFERENCE_FILE_KEY", Context.MODE_PRIVATE);
+
+        if (sharedPreferences != null) {
+
+        }
 
         // For google analytics
         // [START shared_tracker]
@@ -301,6 +303,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mGraphInitialDate = midNightToday;
         mGraphFinalDate = rightNowMillis;
 
+        mSendMessageIsEnable = true;
+
         drawGraphs();
         drawListConsumedFoods();
 
@@ -310,6 +314,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     @Override
     public void onPause() {
         super.onPause();
+
+        mSendMessageIsEnable = false;
     }
 
     @Override
@@ -326,8 +332,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         } else if (id == R.id.ic_menu_connect){
             // Handle the connect action
-//            Intent intent = new Intent(this, ConnectActivity.class);
-//            startActivity(intent);
+            Intent intent = new Intent(this, UserProfileActivity.class);
+            startActivity(intent);
 
             mTracker.send(new HitBuilders.EventBuilder()
                     .setCategory("Action")
@@ -711,11 +717,16 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
         if (mUserProfile == null) { // in the case there is no data on the database
             mUserProfile = new UserProfile();
-            mUserProfile.setDate(0);
-            mUserProfile.setUserBirthYear(0);
+
+            Calendar rightNow = Calendar.getInstance();
+            long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
+            long rightNowMillis = rightNow.getTimeInMillis() + offset;
+            mUserProfile.setDate(rightNowMillis);
+            mUserProfile.setUserName("");
+            mUserProfile.setUserBirthYear(1980);
             mUserProfile.setUserGender(0);
-            mUserProfile.setUserHeight(0);
-            mUserProfile.setUserWeight(0);
+            mUserProfile.setUserHeight(175);
+            mUserProfile.setUserWeight(85);
             mUserProfile.setUserActivityClass(0);
         }
 
@@ -766,7 +777,13 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         byte[] byteArrayDate = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(date).array();
         byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayDate);
-        new SendMessageThread(messageBytes).start();
+        sendMessage(messageBytes);
+    }
+
+    void sendMessage (byte[] messageBytes) {
+        if (mSendMessageIsEnable) {
+            new SendMessageThread(messageBytes).start();
+        }
     }
 
     // code from: https://github.com/JimSeker/wearable/blob/master/WearableDataLayer/wear/src/main/java/edu/cs4730/wearabledatalayer/MainActivity.java

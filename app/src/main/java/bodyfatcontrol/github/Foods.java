@@ -118,14 +118,6 @@ public class Foods {
     public void setId(int id) {
         this.id = id;
     }
-
-    public boolean isCustomCalories() {
-        return isCustomCalories;
-    }
-
-    public void setCustomCalories(boolean customCalories) {
-        isCustomCalories = customCalories;
-    }
 }
 
 

@@ -139,7 +139,7 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
                         mEditTextServingSizeEntry.setError("Min of 0.01");
                     } else {
                         mEditTextServingSizeEntry.setError(null);
-                        food.setUnits(Float.valueOf(mEditTextServingSizeEntry.getText().toString()));
+                        food.setUnitsLogged(Float.valueOf(mEditTextServingSizeEntry.getText().toString()));
                         food.setUnitType(spinnerUnityType.getSelectedItem().toString());
 
                         if (mEditTextCalories.getText().toString().length() <= 0
@@ -161,8 +161,8 @@ public class LogCaloriesFoodActivity extends AppCompatActivity {
                                 e.printStackTrace();
                             }
 
-                            java.util.Calendar rightNow = java.util.Calendar.getInstance();
-                            long offset = rightNow.get(java.util.Calendar.DST_OFFSET);
+                            Calendar rightNow = Calendar.getInstance();
+                            long offset = rightNow.get(Calendar.DST_OFFSET);
                             food.setDate(date + offset);
 
                             food.setIsCustomCalories(true);
