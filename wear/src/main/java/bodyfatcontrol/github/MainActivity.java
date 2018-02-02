@@ -1,16 +1,16 @@
 package bodyfatcontrol.github;
 
+import android.app.UiModeManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.activity.WearableActivity;
-import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -20,27 +20,29 @@ import com.google.android.gms.wearable.MessageClient;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
-import com.google.common.primitives.Longs;
 
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Map;
 import java.util.Set;
 
+import bodyfatcontrol.github.common.Constants;
+import bodyfatcontrol.github.common.DataBaseUserProfile;
+import bodyfatcontrol.github.common.UserProfile;
+
 import static bodyfatcontrol.github.Utils.*;
+import static bodyfatcontrol.github.common.Constants.*;
 
 public final class MainActivity extends WearableActivity implements
         MessageClient.OnMessageReceivedListener,
         CapabilityClient.OnCapabilityChangedListener {
 
     public static Context context;
-    public static SharedPreferences sharedPref;
-    public static UserProfile userProfile;
-    public static final int HISTORIC_CALS_COMMAND = 104030201;
-    private static final int USER_DATA_COMMAND = 204030201;
-    private static final int CALORIES_CONSUMED_COMMAND = 304030201;
+    private UserProfile mUserProfile;
+    private DataBaseUserProfile mDataBaseUserProfile;
 
     SensorHR sensorHR;
     private BroadcastReceiver mBroadcastReceiverHR;
@@ -57,25 +59,27 @@ public final class MainActivity extends WearableActivity implements
 
     public static long currentMinute;
 
+    private boolean runningOnWear = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 //        Toast.makeText(this, "Starting background app", Toast.LENGTH_LONG).show();
 
         context = getApplicationContext();
-        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+
+        UiModeManager uiModeManager = (UiModeManager) context.getSystemService(UI_MODE_SERVICE);
+        if (uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_WATCH) {
+            runningOnWear = true;
+        }
 
         long date = System.currentTimeMillis();
         currentMinute = date - (date % 60000); // get date at start of a minute
 
-        userProfile = new UserProfile();
-        userProfile.setDate(System.currentTimeMillis());
-        userProfile.setUserBirthYear(1979);
-        userProfile.setUserGender(1);
-        userProfile.setUserHeight(173);
-        userProfile.setUserWeight(100);
+        mDataBaseUserProfile = new DataBaseUserProfile(context, runningOnWear);
+        mUserProfile = mDataBaseUserProfile.DataBaseGetLastUserProfile();
 
-        mCalories = new Calories();
+        mCalories = new Calories(mUserProfile);
         mDataBaseCalories = new DataBaseCalories();
 
         // will setup and detect if the app is installed and the wear is connected to Android Wear mobile app
@@ -90,7 +94,7 @@ public final class MainActivity extends WearableActivity implements
             public void onReceive(Context context, Intent intent) {
                 int HRValue = intent.getIntExtra("HR_VALUE", 0);
 
-                mCalories.StoreCalories(currentMinute, HRValue);
+                mCalories.StoreCalories(currentMinute, HRValue, mUserProfile);
 
                 // every hour
                 if ((currentMinute % (60*60*1000)) == 0) {
@@ -107,9 +111,11 @@ public final class MainActivity extends WearableActivity implements
             public void onReceive(Context context, Intent intent) {
                 byte[] message = intent.getByteArrayExtra("MESSAGE");
 
-                long command = ByteArrayToLong(ArrayUtils.subarray(message, 0, 8));
-                if (command == MainActivity.HISTORIC_CALS_COMMAND) {
-                    long date = ByteArrayToLong(ArrayUtils.subarray(message, 8, 16));
+                int index = 0;
+
+                long command = ByteArrayToLong(ArrayUtils.subarray(message, index, (index += longBytesNumber)));
+                if (command == Constants.HISTORIC_CALS_COMMAND) {
+                    long date = ByteArrayToLong(ArrayUtils.subarray(message, index, (index += longBytesNumber)));
                     long finalDate = MainActivity.currentMinute - 60000; // get date in minutes (previous minute)
 
                     // A byte[] of data, which Google recommends be no larger than 100KB in size
@@ -128,7 +134,7 @@ public final class MainActivity extends WearableActivity implements
                     // send result for HISTORIC_CALS_COMMAND
                     ArrayList<Measurement> measurementList = mDataBaseCalories.DataBaseGetMeasurements(date, finalDate);
 
-                    byte[] messageBytes = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(HISTORIC_CALS_COMMAND).array();
+                    byte[] messageBytes = ByteBuffer.allocate(longBytesNumber).putLong(Constants.HISTORIC_CALS_COMMAND).array();
 
                     for (Measurement measurement : measurementList) {
 
@@ -148,6 +154,29 @@ public final class MainActivity extends WearableActivity implements
                         Task<Integer> sendTask = Wearable.getMessageClient(MainActivity.this).sendMessage(
                                 mMobileAppNodeId, MESSAGE_PATH, messageBytes);
                     }
+
+                } else if (command == Constants.USER_PROFILE_COMMAND) {
+                    // write the received UserProfile to the database
+                    // also the global static mUserProfile is updated
+                    Calendar rightNow = Calendar.getInstance();
+                    long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
+                    long rightNowMillis = rightNow.getTimeInMillis() + offset;
+                    mUserProfile.setDate(rightNowMillis);
+                    mUserProfile.setUserBirthYear(
+                            ByteArrayToInt(ArrayUtils.subarray(
+                                    message, index, (index += intBytesNumber))));
+                    mUserProfile.setUserGender(
+                            ByteArrayToInt(ArrayUtils.subarray(
+                                    message, index, (index += intBytesNumber))));
+                    mUserProfile.setUserHeight(
+                            ByteArrayToInt(ArrayUtils.subarray(
+                                    message, index, (index += intBytesNumber))));
+                    mUserProfile.setUserWeight(
+                            ByteArrayToInt(ArrayUtils.subarray(
+                                    message, index, (index += intBytesNumber))));
+
+                    mDataBaseUserProfile.DataBaseUserProfileWrite(mUserProfile);
+                    mCalories = new Calories(mUserProfile); // this is needed to update caloriesEERPerMinute
                 }
             }
         };

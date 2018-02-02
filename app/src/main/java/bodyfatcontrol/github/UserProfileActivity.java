@@ -9,6 +9,9 @@ import android.widget.Spinner;
 
 import java.util.Calendar;
 
+import bodyfatcontrol.github.common.DataBaseUserProfile;
+import bodyfatcontrol.github.common.UserProfile;
+
 import static bodyfatcontrol.github.MainActivity.context;
 
 public class UserProfileActivity extends AppCompatActivity {
@@ -16,21 +19,11 @@ public class UserProfileActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle("Create food");
+        setTitle("User profile");
         setContentView(R.layout.activity_user_profile);
 
-        DataBaseUserProfile mDataBaseUserProfile = new DataBaseUserProfile(context);
-        UserProfile mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
-        if (mUserProfile == null) { // in the case there is no data on the database
-            mUserProfile = new UserProfile();
-            mUserProfile.setDate(System.currentTimeMillis());
-            mUserProfile.setUserName("");
-            mUserProfile.setUserBirthYear(1980);
-            mUserProfile.setUserGender(0);
-            mUserProfile.setUserHeight(175);
-            mUserProfile.setUserWeight(85);
-            mUserProfile.setUserActivityClass(0);
-        }
+        DataBaseUserProfile mDataBaseUserProfile = new DataBaseUserProfile(context, MainActivity.runningOnWear);
+        UserProfile mUserProfile = mDataBaseUserProfile.DataBaseGetLastUserProfile();
 
         final EditText editTextUserName = (EditText) findViewById(R.id.user_name_entry);
         final Spinner spinnerGender = (Spinner) findViewById(R.id.spinner_gender);
@@ -51,47 +44,52 @@ public class UserProfileActivity extends AppCompatActivity {
 
         buttonSave.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                DataBaseUserProfile mDataBaseUserProfile = new DataBaseUserProfile(context);
-                UserProfile mUserProfile = new UserProfile();
+                if (MainActivity.permissionWriteExternalStorageEnable == true) {
+                    DataBaseUserProfile mDataBaseUserProfile = new DataBaseUserProfile(context, MainActivity.runningOnWear);
+                    UserProfile mUserProfile = new UserProfile();
 
-                // Validate user inputs
-                if (editTextUserName.getText().toString().length() <= 0) {
-                    editTextUserName.setError("Enter user name");
-                } else {
-                    editTextUserName.setError(null);
-
-                    if (editTextBirthYear.getText().toString().length() <= 3) {
-                        editTextBirthYear.setError("Set year, example: 1980");
+                    // Validate user inputs
+                    if (editTextUserName.getText().toString().length() <= 0) {
+                        editTextUserName.setError("Enter user name");
                     } else {
-                        editTextBirthYear.setError(null);
+                        editTextUserName.setError(null);
 
-                        if (editTextHeight.getText().toString().length() <= 0
-                                || Float.parseFloat(editTextHeight.getText().toString()) < 1.0) {
-                            editTextHeight.setError("Min of 1 meter, example: 1.00");
+                        if (editTextBirthYear.getText().toString().length() <= 3) {
+                            editTextBirthYear.setError("Set year, example: 1980");
                         } else {
-                            editTextHeight.setError(null);
+                            editTextBirthYear.setError(null);
 
-                            if (editTextWeight.getText().toString().length() <= 1) {
-                                editTextWeight.setError("Min of 10 kg, example: 85");
+                            if (editTextHeight.getText().toString().length() <= 0
+                                    || Float.parseFloat(editTextHeight.getText().toString()) < 1.0) {
+                                editTextHeight.setError("Min of 1 meter, example: 1.00");
                             } else {
-                                editTextWeight.setError(null);
+                                editTextHeight.setError(null);
 
-                                Calendar rightNow = Calendar.getInstance();
-                                long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
-                                long rightNowMillis = rightNow.getTimeInMillis() + offset;
-                                mUserProfile.setDate(rightNowMillis);
-                                mUserProfile.setUserName(editTextUserName.getText().toString());
-                                mUserProfile.setUserGender(spinnerGender.getSelectedItemPosition());
-                                mUserProfile.setUserBirthYear(
-                                        (Integer.valueOf(editTextBirthYear.getText().toString())));
-                                mUserProfile.setUserHeight(Math.round(
-                                        Float.valueOf(editTextHeight.getText().toString()) * 100));
-                                mUserProfile.setUserWeight(
-                                        (Integer.valueOf(editTextWeight.getText().toString())));
+                                if (editTextWeight.getText().toString().length() <= 1) {
+                                    editTextWeight.setError("Min of 10 kg, example: 85");
+                                } else {
+                                    editTextWeight.setError(null);
 
-                                mDataBaseUserProfile.DataBaseUserProfileWrite(mUserProfile);
+                                    Calendar rightNow = Calendar.getInstance();
+                                    long offset = rightNow.get(Calendar.ZONE_OFFSET) +
+                                            rightNow.get(Calendar.DST_OFFSET);
+                                    long rightNowMillis = rightNow.getTimeInMillis() + offset;
+                                    mUserProfile.setDate(rightNowMillis);
+                                    mUserProfile.setUserName(editTextUserName.getText().toString());
+                                    mUserProfile.setUserGender(spinnerGender.getSelectedItemPosition());
+                                    mUserProfile.setUserBirthYear(
+                                            (Integer.valueOf(editTextBirthYear.getText().toString())));
+                                    mUserProfile.setUserHeight(Math.round(
+                                            Float.valueOf(editTextHeight.getText().toString()) * 100));
+                                    mUserProfile.setUserWeight(
+                                            (Integer.valueOf(editTextWeight.getText().toString())));
 
-                                finish(); // finish this activity
+                                    mDataBaseUserProfile.DataBaseUserProfileWrite(mUserProfile);
+
+                                    MainActivity.setUpdateUserProfile();
+
+                                    finish(); // finish this activity
+                                }
                             }
                         }
                     }

@@ -2,24 +2,24 @@ package bodyfatcontrol.github;
 ;
 import java.util.Calendar;
 
+import bodyfatcontrol.github.common.UserProfile;
+
 public class Calories {
-    UserProfile mUserProfile;
     DataBaseCalories mDataBaseCalories;
     Measurement mMeasurement;
     static public double caloriesEERPerMinute;
 
-    Calories() {
-        mUserProfile = MainActivity.userProfile;
+    Calories(UserProfile userProfile) {
         mDataBaseCalories = new DataBaseCalories();
         mMeasurement = new Measurement();
-        caloriesEERPerMinute = calcDailyCaloriesEER() / (24*60);
+        caloriesEERPerMinute = calcDailyCaloriesEER(userProfile) / (24*60);
     }
 
-    public void StoreCalories(long date, int HR)
+    public void StoreCalories(long date, int HR, UserProfile userProfile)
     {
         mMeasurement.setDate(date);
         mMeasurement.setHR(HR);
-        mMeasurement.setCaloriesPerMinute(calcCalories(HR));
+        mMeasurement.setCaloriesPerMinute(calcCalories(HR, userProfile));
         mMeasurement.setCaloriesEERPerMinute(caloriesEERPerMinute);
         mDataBaseCalories.DataBaseWriteMeasurement(mMeasurement);
     }
@@ -50,12 +50,12 @@ public class Calories {
     Female:((-59.3954 + (0.45 x HR) + (0.380 x VO2max) + (0.103 x W) + (0.274 x A))/4.184) x 60 x T
     */
 
-    public double calcDailyCaloriesEER() {
-        int birthYear = mUserProfile.getUserBirthYear();
+    public double calcDailyCaloriesEER(UserProfile userProfile) {
+        int birthYear = userProfile.getUserBirthYear();
         int age = (Calendar.getInstance().get(Calendar.YEAR)) - birthYear;
-        int gender = mUserProfile.getUserGender();
-        double height = (double) mUserProfile.getUserHeight();
-        double weight = (double) mUserProfile.getUserWeight();
+        int gender = userProfile.getUserGender();
+        double height = (double) userProfile.getUserHeight();
+        double weight = (double) userProfile.getUserWeight();
         double calories;
 
         if (gender == 0) { // female
@@ -67,12 +67,12 @@ public class Calories {
         return calories;
     }
 
-    public double calcDailyCaloriesEER(long initialDate, long finalDate) {
-        int birthYear = mUserProfile.getUserBirthYear();
+    public double calcDailyCaloriesEER(long initialDate, long finalDate, UserProfile userProfile) {
+        int birthYear = userProfile.getUserBirthYear();
         int age = (Calendar.getInstance().get(Calendar.YEAR)) - birthYear;
-        int gender = mUserProfile.getUserGender();
-        double height = (double) mUserProfile.getUserHeight();
-        double weight = (double) mUserProfile.getUserWeight();
+        int gender = userProfile.getUserGender();
+        double height = (double) userProfile.getUserHeight();
+        double weight = (double) userProfile.getUserWeight();
 
         double calories;
         if (gender == 0) { // female
@@ -93,11 +93,11 @@ public class Calories {
         return calories;
     }
 
-    public double calcCalories(int HRValue) {
-        int birthYear = mUserProfile.getUserBirthYear();
+    public double calcCalories(int HRValue, UserProfile userProfile) {
+        int birthYear = userProfile.getUserBirthYear();
         int age = (Calendar.getInstance().get(Calendar.YEAR)) - birthYear;
-        int gender = mUserProfile.getUserGender();
-        double weight = (double) mUserProfile.getUserWeight();
+        int gender = userProfile.getUserGender();
+        double weight = (double) userProfile.getUserWeight();
 
         double HR = (double) HRValue;
         double calories;

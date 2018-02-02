@@ -1,23 +1,32 @@
-package bodyfatcontrol.github;
+package bodyfatcontrol.github.common;
 
 public class UserProfile {
     private int id;
+    private String userName;
     private long date;
     private int userBirthYear;
     private int userGender;
     private int userHeight;
     private int userWeight;
+    private int userActivityClass;
 
     public UserProfile() {
     }
 
     public int getId() {
-
         return id;
     }
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public long getDate() {
@@ -58,5 +67,13 @@ public class UserProfile {
 
     public void setUserWeight(int userWeight) {
         this.userWeight = userWeight;
+    }
+
+    public int getUserActivityClass() {
+        return userActivityClass;
+    }
+
+    public void setUserActivityClass(int userActivityClass) {
+        this.userActivityClass = userActivityClass;
     }
 }

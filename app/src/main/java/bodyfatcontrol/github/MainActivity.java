@@ -3,6 +3,7 @@ package bodyfatcontrol.github;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.app.UiModeManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,10 +11,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -37,7 +37,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -57,14 +56,10 @@ import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
-import com.google.android.gms.wearable.CapabilityClient;
-import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
-import com.google.common.primitives.Longs;
 
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
@@ -73,15 +68,18 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import android.Manifest;
 
 import org.apache.commons.lang3.ArrayUtils;
 
+import bodyfatcontrol.github.common.Constants;
+import bodyfatcontrol.github.common.DataBaseUserProfile;
+import bodyfatcontrol.github.common.UserProfile;
+
 import static bodyfatcontrol.github.Utils.*;
+import static bodyfatcontrol.github.common.Constants.*;
 
 public class MainActivity extends AppCompatActivity implements OnChartValueSelectedListener,
         OnChartGestureListener, NavigationView.OnNavigationItemSelectedListener,
@@ -89,9 +87,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     private Tracker mTracker; // for google analytics
 
-    public static final int HISTORIC_CALS_COMMAND = 104030201;
-    private static final int USER_DATA_COMMAND = 204030201;
-    private static final int CALORIES_CONSUMED_COMMAND = 304030201;
     NavigationView navigationView;
     private CustomDrawerLayout mDrawerLayout;
     private TextView mTextViewCaloriesCalc;
@@ -111,8 +106,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private float x1,x2;
     static final int MIN_DISTANCE = 150;
     static boolean mIsToday = true;
-    private DataBaseUserProfile mDataBaseUserProfile = null;
-    private UserProfile mUserProfile = null;
     public static Context context;
     public static SharedPreferences sharedPreferences;
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 0;
@@ -122,12 +115,20 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     public static final String MESSAGE_PATH = "/notification";
     private double mLastSynchDate = System.currentTimeMillis();
     private boolean mSendMessageIsEnable = false;
+    private static boolean UpdateUserProfile = true;
+    public static boolean permissionWriteExternalStorageEnable = false;
+    public static boolean runningOnWear = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         context = getApplicationContext();
+
+        UiModeManager uiModeManager = (UiModeManager) context.getSystemService(UI_MODE_SERVICE);
+        if (uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_WATCH) {
+            runningOnWear = true;
+        }
 
         setTitle("Body Fat Control");
         setContentView(R.layout.activity_main);
@@ -147,13 +148,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-
-        sharedPreferences = context.getSharedPreferences(
-                "bodyfatcontrol.github.PREFERENCE_FILE_KEY", Context.MODE_PRIVATE);
-
-        if (sharedPreferences != null) {
-
-        }
 
         // For google analytics
         // [START shared_tracker]
@@ -175,6 +169,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     PERMISSION_WRITE_EXTERNAL_STORAGE);
+        } else {
+            permissionWriteExternalStorageEnable = true;
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -243,23 +239,20 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             public void onReceive(Context context, Intent intent) {
                 byte[] message = intent.getByteArrayExtra("MESSAGE");
                 long command = ByteArrayToLong(ArrayUtils.subarray(message, 0, 8));
-                if (command == MainActivity.HISTORIC_CALS_COMMAND) {
+                if (command == Constants.HISTORIC_CALS_COMMAND) {
                     textViewLastUpdateDate.setText("updated");
                     mLastSynchDate = System.currentTimeMillis();
 
                     ArrayList<Measurement> measurementList = new ArrayList<Measurement>();
 
-                    int measurementByteSize = (Long.SIZE + Integer.SIZE + Double.SIZE + Double.SIZE) / Byte.SIZE;
-                    int messageNumberOfMeasurements = (message.length - (Long.SIZE/Byte.SIZE)) / measurementByteSize;
-                    int nm = messageNumberOfMeasurements;
+                    int measurementByteSize = longBytesNumber + intBytesNumber + doubleBytesNumber + doubleBytesNumber;
+                    int messageNumberOfMeasurements = (message.length - (longBytesNumber)) / measurementByteSize;
 
-                    long d = 0;
                     int i = 8;
                     for ( ; messageNumberOfMeasurements > 0; messageNumberOfMeasurements--) {
                         Measurement measurement = new Measurement();
 
                         long date = ByteArrayToLong(ArrayUtils.subarray(message, i, i += 8));
-                        d = date;
                         measurement.setDate(date);
 
                         int HR = ByteArrayToInt(ArrayUtils.subarray(message, i, i += 4));
@@ -275,6 +268,11 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                     }
 
                     new DataBaseCalories(context).DataBaseWriteMeasurement(measurementList);
+                }
+
+                if (UpdateUserProfile == true) {
+                    UpdateUserProfile = false;
+                    sendCommandUserProfile();
                 }
             }
         };
@@ -534,7 +532,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             // Send the calories balance value (but only for today)
             if (mGraphInitialDate == mMidNightToday) { // today
                 ArrayList<Integer> command = new ArrayList<>();
-                command.add(CALORIES_CONSUMED_COMMAND);
+                command.add(Constants.CALORIES_CONSUMED_COMMAND);
                 command.add((int) mCaloriesConsumed);
 //                sendMessage(command);
             }
@@ -656,8 +654,10 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                             mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
                         }
 
-                        drawGraphs();
-                        drawListConsumedFoods();
+                        if (permissionWriteExternalStorageEnable == true) {
+                            drawGraphs();
+                            drawListConsumedFoods();
+                        }
                     }
 
                     // Right to left swipe action
@@ -678,8 +678,10 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                             mGraphFinalDate = mGraphInitialDate + SECONDS_24H - 60000; // 23h59m
                         }
 
-                        drawGraphs();
-                        drawListConsumedFoods();
+                        if (permissionWriteExternalStorageEnable == true) {
+                            drawGraphs();
+                            drawListConsumedFoods();
+                        }
                     }
 
                 }
@@ -702,6 +704,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // permission was granted
                     startAppThatDependsPermissions ();
+                    permissionWriteExternalStorageEnable = true;
                 } else {
                     // permission denied
                     finish();
@@ -712,24 +715,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     }
 
     private void startAppThatDependsPermissions () {
-        // Get the UserProfile from the database
-        mDataBaseUserProfile = new DataBaseUserProfile(context);
-        mUserProfile = mDataBaseUserProfile.DataBaseUserProfileLast();
-        if (mUserProfile == null) { // in the case there is no data on the database
-            mUserProfile = new UserProfile();
-
-            Calendar rightNow = Calendar.getInstance();
-            long offset = rightNow.get(Calendar.ZONE_OFFSET) + rightNow.get(Calendar.DST_OFFSET);
-            long rightNowMillis = rightNow.getTimeInMillis() + offset;
-            mUserProfile.setDate(rightNowMillis);
-            mUserProfile.setUserName("");
-            mUserProfile.setUserBirthYear(1980);
-            mUserProfile.setUserGender(0);
-            mUserProfile.setUserHeight(175);
-            mUserProfile.setUserWeight(85);
-            mUserProfile.setUserActivityClass(0);
-        }
-
         drawGraphs();
         drawListConsumedFoods();
     }
@@ -763,7 +748,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
     void sendCommandHistoricCalories () {
         // send command to ask for historic HR, calories
-        byte[] byteArrayCommand = ByteBuffer.allocate(Long.SIZE/Byte.SIZE).putLong(HISTORIC_CALS_COMMAND).array();
+        byte[] byteArrayCommand = ByteBuffer.allocate(longBytesNumber).putLong(Constants.HISTORIC_CALS_COMMAND).array();
 
         long date = new DataBaseCalories(context).DataBaseGetLastMeasurementDate();
         // if date == 0, then database is empty
@@ -780,8 +765,31 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         sendMessage(messageBytes);
     }
 
-    void sendMessage (byte[] messageBytes) {
-        if (mSendMessageIsEnable) {
+    void sendCommandUserProfile() {
+        // send command with User Profile
+        byte[] byteArrayCommand = ByteBuffer.allocate(longBytesNumber).putLong(
+                Constants.USER_PROFILE_COMMAND).array();
+
+        DataBaseUserProfile mDataBaseUserProfile = new DataBaseUserProfile(context, runningOnWear);
+        UserProfile userProfile = mDataBaseUserProfile.DataBaseGetLastUserProfile();
+
+        byte[] byteArrayBirthYear = ByteBuffer.allocate(
+                intBytesNumber).putInt(userProfile.getUserBirthYear()).array();
+        byte[] messageBytes = ArrayUtils.addAll(byteArrayCommand, byteArrayBirthYear);
+        byte[] byteArrayGender = ByteBuffer.allocate(
+                intBytesNumber).putInt(userProfile.getUserGender()).array();
+        messageBytes = ArrayUtils.addAll(messageBytes, byteArrayGender);
+        byte[] byteArrayHeight = ByteBuffer.allocate(
+                intBytesNumber).putInt(userProfile.getUserHeight()).array();
+        messageBytes = ArrayUtils.addAll(messageBytes, byteArrayHeight);
+        byte[] byteArrayWeight = ByteBuffer.allocate(
+                intBytesNumber).putInt(userProfile.getUserWeight()).array();
+        messageBytes = ArrayUtils.addAll(messageBytes, byteArrayWeight);
+        sendMessage(messageBytes);
+    }
+
+    void sendMessage(byte[] messageBytes) {
+        if (mSendMessageIsEnable == true) {
             new SendMessageThread(messageBytes).start();
         }
     }
@@ -826,6 +834,10 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         } else {
             textViewLastUpdateDate.setText("syncing");
         }
+    }
+
+    public static void setUpdateUserProfile() {
+        MainActivity.UpdateUserProfile = true;
     }
 }
 
