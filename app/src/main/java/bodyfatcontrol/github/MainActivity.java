@@ -274,6 +274,9 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                     UpdateUserProfile = false;
                     sendCommandUserProfile();
                 }
+
+                drawGraphs();
+                drawListConsumedFoods();
             }
         };
         LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
@@ -305,7 +308,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
         drawGraphs();
         drawListConsumedFoods();
-
         sendCommandHistoricCalories ();
     }
 
